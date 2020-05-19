@@ -1509,6 +1509,17 @@ SynthDef(\sosHatsSd, { arg out = 0, amp = 0.8, pan = 0, freq = 6000, curve = -4,
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\tick2Sd, {
+    var sig, env, rq = \rq.kr(0.1);
+    env = Env.perc(\atk.kr(0), \rel.kr(0.05)).ar(2);
+    sig = Impulse.ar(0);
+    sig = sig * 0.5;
+    sig = RHPF.ar(sig, \freq.kr(1000), rq) * env;
+    // sig = Pan2.ar(sig, \pan.kr(0)) * \amp.kr(1.0);
+    // OffsetOut.ar(\out.kr(0), sig);
+	OffsetOut.ar(\out.kr(0), DirtPan.ar(sig, ~dirt.numChannels, \pan.kr(0), \amp.kr(1.0)));
+}).add;
+
 ///////////////////////////////////////  Cymbal
 
 SynthDef(\cymSd, { arg out=0, amp=0.5, pan=0, att=0, rel=1, curve=(-8), tu=1, doneAction=2;
@@ -3670,6 +3681,18 @@ SynthDef(\pm4, {
 
 }).add;
 
+SynthDef(\sawFiltKyma, { |out = 0, amp = 0.1, pan = 0, freq = 440, cf = 100, wobble = 3, t_bd, t_sd, pw = 0.4, gate = 1, doneAction = 2|
+    var base = Splay.ar(RLPF.ar(Pulse.ar(freq * [0.99,0.5,1.01],pw),cf.lag(0.05),0.3).madd(SinOsc.ar(wobble).range(0.5,4)).sin) * 0.5;
+    var env = Linen.kr(gate, attackTime: 0.01, releaseTime: 0.5, doneAction: doneAction);
+    var sig = base;
+    var bd = tanh(Ringz.ar(LPF.ar(Trig.ar(t_bd,SampleDur.ir),1000),30,0.5,5).sin*2);
+    var sd = tanh(Ringz.ar(LPF.ar(Trig.ar(t_sd,SampleDur.ir),1000),120,0.75,PinkNoise.ar(2!2)).sin*2);
+    sd = HPF.ar(sd,60);
+    sig = tanh(GVerb.ar(HPF.ar(base * env,30), 70, 11, 0.15)*0.5 + sig + bd + sd);
+	// Out.ar(out, sig*amp*env);
+	OffsetOut.ar(out, DirtPan.ar(sig*amp*env, ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\virgoSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1, feedback = 7.5, freq1 = 32, freq2 = 33, delaytime = 2, decaytime = 40, gate = 1, doneAction = 2;
@@ -3822,6 +3845,140 @@ SynthDef(\padovanSd, { arg out = 0, amp = 1, pan = 0, tridDur = 1, freq = 165, r
 	// OffsetOut.ar(out, sig * env * amp);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * env));
 }).add;*/
+
+SynthDef(\LiljedDrumSeqSd, { arg out = 0, amp = 1, pan = 0, attack = 0.0001, release = 4, sawFrq = 4, plcTrigRate = 1, plcDelay = 1, plcDecay = 0.85714285714286, pCntTrigRate = 12, pCntResetRate = 5, krpsLpfFrq = 2500, krpsHpfFrq = 750, kickLpfFrq = 3000, kickHpfFrq = 40, ringFrq = 60, ringDec = 0.8, gate = 1, doneAction = 2;
+	var sig, env, imp, krps, kick;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+	imp = Impulse.ar(_); // * gate;
+
+	krps = Pluck.ar(
+		Saw.ar(sawFrq),
+		imp.(plcTrigRate),
+		1,
+		plcDelay,
+		plcDecay,
+		SinOsc.ar(
+			PulseCount.ar(
+				imp.(pCntTrigRate),
+				imp.(pCntResetRate)
+			).cos%[3,4]*20
+		),
+		2.5
+	).sin;
+
+	krps = krps + LPF.ar(
+		HPF.ar(
+			FreeVerb.ar(
+				krps.mean,
+				1,
+				0.999,
+				0.2
+			)*0.3,
+			krpsHpfFrq
+		) * Line.kr(0,1,16),
+		krpsLpfFrq
+	);
+
+	kick = HPF.ar(
+		Ringz.ar(
+			LPF.ar(
+				Impulse.ar(
+					[0.5,1]!2,
+					[1/6,0]
+				).sum,
+				kickLpfFrq
+			),
+			ringFrq,
+			ringDec,
+			3
+		).sin * 3,
+		kickHpfFrq
+	).tanh.madd(0.6);
+
+	sig = krps + kick;
+	// sig = sig * env * amp;
+	sig = Mix.ar(sig) * env * amp;
+
+	// OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\LiljedKickSeqSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release = 2, trgChance1 = 0.5, trgChance2 = 0.3, trgChance3 = 0.9, trgRate1 = 4, trgRate2 = 12, trgRate3 = 6, rFreq1 = 45, rFreq2 = 50, rDec1 = 0.6, rDec2 = 0.1, rDec3 = 1, rDec4 = 0.3, rAmp1 = 9, rAmp2 = 2, rAmp3 = 3, rAmp4 = 1, gate = 1, doneAction = 2;
+	var sig, env;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+	sig = Ringz.ar(
+		CoinGate.ar(
+			[trgChance1, trgChance2, trgChance3],
+			Impulse.ar([trgRate1, trgRate2, trgRate3])
+		),
+		[rFreq1, rFreq2],
+		[rDec1, rDec2, rDec3, rDec4],
+		[rAmp1, rAmp2, rAmp3, rAmp4]
+	).sin.sum.tanh;
+	sig = sig * env;
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\LiljedMetalicSd, { arg out = 0, amp = 0.05, pan = 0, attack = 0.01, release = 2, rTrgRate = 1, rFreq1 = 40, rFreq2 = 200, rFreq3 = 234, rFreq4 = 889, rDec = 0.7, revSize = 5, revTime = 2, revDamp = 0.7, gate = 1, doneAction = 2;
+	var sig, env;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+
+	sig = Ringz.ar(
+		Impulse.ar(rTrgRate),
+		[rFreq1, rFreq2, rFreq3, rFreq4],
+		rDec
+	).sum*2;
+
+	sig = GVerb.ar(
+		sin(sig),
+		revSize,
+		revTime,
+		revDamp
+	);
+
+	sig = Mix.ar(sig) * env;
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\LiljedMetalic1Sd, { arg out = 0, amp = 0.05, pan = 0, attack = 0.01, release = 2, rTrgRate = 1, rFreq1 = 40, rFreq2 = 200, rFreq3 = 234, rFreq4 = 889, rFreq5 = 1320, rFreq6 = 150, rDec = 0.7, revSize = 5, revTime = 2, revDamp = 0.7, gate = 1, doneAction = 2;
+	var sig, env;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+
+	sig = Ringz.ar(
+		Impulse.ar(rTrgRate),
+		[rFreq1, rFreq2, rFreq3, rFreq4, rFreq5, rFreq6],
+		rDec
+	).sum;
+
+	sig = GVerb.ar(
+		sin(sig),
+		revSize,
+		revTime,
+		revDamp
+	)/2;
+
+	sig = Mix.ar(sig) * env;
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\LiljedSoftRytmSd, { arg out = 0, amp = 0.6, pan = 0, attack = 0.01, release = 2, impSigRate = 8, sawFreq = 3, impRevRate = 4, impRevPh = 0.5, blipFreq = 4.9, blipHarm = 7, blipAmp = 0.4, revSize = 1, revTime = 1, gate = 1, doneAction = 2;
+	var sig, env, imp, rev;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+	imp = Impulse;
+	sig = imp.kr(impSigRate).lag * Crackle.ar(LFSaw.kr(sawFreq).abs.lag * 1.8);
+	rev = GVerb.ar(
+		imp.kr(impRevRate, impRevPh).lag * Blip.ar(blipFreq, blipHarm, blipAmp),
+		revSize,
+		revTime
+	) * 5;
+	sig = sig + rev;
+	sig = Mix.ar(sig * env);
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
 
 ///////////////////////////////////////  Rimshot
 
@@ -4229,6 +4386,63 @@ SynthDef(\corman1Sd, { arg out = 0, amp = 1, pan = 0, attack = 1, release = 10, 
 	sig = sig * env;
 	sig = Splay.ar(sig);
 	// OffsetOut.ar(out, sig * amp);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\LiljedMystSd, { arg out = 0, amp = 0.6, pan = 0, attack = 0.01, release = 4, pNoiseFreq = 5e-3, hpfFreq = 10, modDur = 9, lfnFreq = 0.05, ringFreq = 55, ringDec = 0.2, revSize = 70, revTime = 99, gate = 1, doneAction = 2;
+	var sig, env;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+	sig = HPF.ar(PinkNoise.ar(pNoiseFreq), hpfFreq) * Line.kr(0, 1, modDur);
+	sig = GVerb.ar(
+		({ |i|
+			Ringz.ar(
+				sig * LFNoise1.kr(lfnFreq + 0.1.rand),
+				ringFreq * i + 60,
+				ringDec
+			)
+		}!44).sum,
+		revSize,
+		revTime
+	).tanh;
+	sig = Mix.ar(sig * env);
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\LiljedRainSd, { arg out = 0, amp = 0.6, pan = 0, attack = 0.01, release = 2, nFrqR = 0.08, lfnFrqR1 = 0.3, lfnFrqR2 = 0.2, lpfR = 7000, hpfR = 400, revSizeR = 250, revTimeR = 100, revDampR = 0.25, dryLevR = 0.3, modDurR = 10, lfnFrqT1 = 3, lfnFrqT2 = 2, hpfT = 20, revSizeT = 270, revTimeT = 30, revDampT = 0.7, dryLevT = 0.5, modDurT = 30, gate = 1, doneAction = 2;
+	var sig, env, rain, thunder;
+	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+
+	rain = PinkNoise.ar(nFrqR + LFNoise1.kr(lfnFrqR1, 0.02));
+	rain = rain + LPF.ar(Dust2.ar(LFNoise1.kr(lfnFrqR2).range(40, 50)), lpfR);
+	rain = tanh(
+		3 * GVerb.ar(
+			HPF.ar(
+				rain,
+				hpfR
+			),
+			revSizeR,
+			revTimeR,
+			revDampR,
+			drylevel: dryLevR
+		) * Line.kr(0, 1, modDurR)
+	);
+
+	thunder = 10 * HPF.ar(PinkNoise.ar(LFNoise1.kr(lfnFrqT1).clip(0, 1) * LFNoise1.kr(lfnFrqT2).clip(0, 1) ** 1.8), hpfT);
+	thunder = GVerb.ar(
+		LPF.ar(
+			thunder,
+			LFNoise1.kr(1).exprange(100, 2500)
+		).tanh,
+		revSizeT,
+		revTimeT,
+		revDampT,
+		drylevel: dryLevT
+	) * Line.kr(0, 0.7, modDurT);
+
+	sig = (rain + thunder) * env;
+	sig = Mix.ar(sig);
+	// OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
