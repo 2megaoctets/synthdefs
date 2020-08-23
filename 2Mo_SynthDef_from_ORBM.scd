@@ -189,7 +189,7 @@ SynthDef(\t1kickSd, {arg out = 0, amp = 0.5, pan = 0, rel = 0, doneAction = 2;
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\t1kick2Sd, {arg out = 0, amp = 0.5, pan = 0, envaT1 = 0, envaL1 = 1, envaT2 = 0.6, envaL2 = 1, envaT3 = 0.2, envaL3 = 0.5, envaT4 = 0.2, envaL4 = 0, envaCurve = (-4), envfT1 = 0, envfL1 = 10000, envfT2 = 0.002, envfL2 = 20, envfT3 = 0.1, envfL3 = 0, envfT4 = 1, envfL4 = 4, envfCurve = (-4), pitch = 0.1, hpfFreq = 1200, hpfRq = 1, verbMix = 1, verbRoom = 1, verbTime = 3, verbDamp = 0.5, doneAction = 2;
+~synthSd = SynthDef(\t1kick2Sd, {arg out = 0, amp = 0.5, pan = 0, envaT1 = 0, envaL1 = 1, envaT2 = 0.6, envaL2 = 1, envaT3 = 0.2, envaL3 = 0.5, envaT4 = 0.2, envaL4 = 0, envaCurve = (-4), envfT1 = 0, envfL1 = 10000, envfT2 = 0.002, envfL2 = 20, envfT3 = 0.1, envfL3 = 0, envfT4 = 1, envfL4 = 4, envfCurve = (-4), pitch = 0.1, hpfFreq = 1200, hpfRq = 1, verbMix = 1, verbRoom = 1, verbTime = 3, verbDamp = 0.5, doneAction = 2;
 	var revSig;
 	var enva = EnvGen.kr(Env.pairs([[envaT1, envaL1], [envaT2, envaL2], [envaT3, envaL3], [envaT4, envaL4]], envaCurve), doneAction: doneAction);
 	//var envf = EnvGen.kr(Env([10000,20,00,4],[0.002,0.1,1,1]));
@@ -630,10 +630,10 @@ SynthDef(\kickBlocksSd, { arg out = 0, amp = 0.4, pan = 0, curve = (-4),
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, env));
 }).add;
 
-SynthDef(\ringkickSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, dcy = 2.63, lpfFreq = 13760, freq = 26, envfL1 = 6416.9, envfL2 = 0, envfL3 = 66.2, envfL4 = 20, envfL5 = 0, envfT1 = 0, envfT2 = 0.04, envfT3 = 0.53, envfT4 = 2.37, curve = (-4.92), envfAmt = 0.32, lfnFrq = 59.2, lfnAmt = 0, ringAmp = 0.04, sawFreq = 20.7, sawPh = 6.18, sawDecDiv = 7, sawAmp = 0.18, sinFreq = 10010, sinFb = 0, sinDecDiv = 188, sinAmp = 0.29, doneAction = 2;
+SynthDef(\ringkickSd, { arg out = 0, amp = 0.2, pan = 0, atk = 0.01, dcy = 2.63, lpfFreq = 13760, frq = 26, envfL1 = 6416.9, envfL2 = 0, envfL3 = 66.2, envfL4 = 20, envfL5 = 0, envfT1 = 0, envfT2 = 0.04, envfT3 = 0.53, envfT4 = 2.37, curve = (-4.92), envfAmt = 0.32, lfnFrq = 59.2, lfnAmt = 0, ringAmp = 0.04, sawFreq = 20.7, sawPh = 6.18, sawDecDiv = 7, sawAmp = 0.18, sinFreq = 10010, sinFb = 0, sinDecDiv = 188, sinAmp = 0.29, doneAction = 2;
 	var snd, env, trig, envf, mod;
 	mod = LFNoise2.kr(lfnFrq, lfnAmt).range(1, lfnAmt);
-	env = EnvGen.kr(Env.linen(attack, 1, dcy), doneAction: doneAction);
+	env = EnvGen.kr(Env.linen(atk, 1, dcy), doneAction: doneAction);
 	envf = EnvGen.kr(Env([envfL1, envfL2, envfL3, envfL4, envfL5], [envfT1, envfT2, envfT3, envfT4], [curve, curve/2, curve]), levelScale: envfAmt * mod, doneAction: doneAction);
 	trig = Impulse.ar(0);
 	snd = Ringz.ar(
@@ -641,7 +641,7 @@ SynthDef(\ringkickSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, dcy = 2.
 			in: trig,
 			freq: lpfFreq
 		),
-		freq: freq * envf.range(1, envfAmt), /*+ (freq * envf)*/
+		freq: frq * envf.range(1, envfAmt), /*+ (frq * envf)*/
 		decaytime: dcy,
 		mul: 7 * ringAmp
 	).tanh.sin*2;
@@ -685,10 +685,10 @@ SynthDef(\kick_chirpSd, { arg out = 0, amp = 0.1, pan = 0, curve = -20, att = 0.
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\kick_electroSd, { arg out = 0, amp = 0.3, pan = 0, att = 0.01, rel = 0.3, envbfL1 = 261, envbfL2 = 120, envbfL3 = 51, envbfRel = 0.003, envbfC = (-4), envbaL1 = 0, envbaL2 = 1, envbaL3 = 0.1, envbaL4 = 0.8, envbaL5 = 0, envbaT1 = 0.2, envbaT2 = 0.1, envbaT3 = 0.03, envbaT4 = 0.2, envbaC1 = (-4), envbaC2 = (-4), envbaC3 = (-4), envbAmp = 1, pfSt = 750, pfEnd = 261, pfDur = 0.02, envpaL1 = 0, envpaL2 = 0.4, envpaL3 = 1, envpaL4 = 0.02, envpaL5 = 0, envpaT1 = 0.1, envpaT2 = 0.4, envpaT3 = 0.03, envpaT4 = 0.2, envpaC1 = (-4), envpaC2 = (-4), envpaC3 = (-4), envpAmp = 1, envcaAtt = 0, envcaRel = 0.2, envcAmp = 1, cFundFreq = 910, cFormFreq = 4760, cBwFreq = 2110, lpfFreq = 3140, doneAction = 2;
+SynthDef(\kick_electroSd, { arg out = 0, amp = 0.3, pan = 0, atk = 0.01, rls = 0.3, envbfL1 = 261, envbfL2 = 120, envbfL3 = 51, envbfRel = 0.003, envbfC = (-4), envbaL1 = 0, envbaL2 = 1, envbaL3 = 0.1, envbaL4 = 0.8, envbaL5 = 0, envbaT1 = 0.2, envbaT2 = 0.1, envbaT3 = 0.03, envbaT4 = 0.2, envbaC1 = (-4), envbaC2 = (-4), envbaC3 = (-4), envbAmp = 1, pfSt = 750, pfEnd = 261, pfDur = 0.02, envpaL1 = 0, envpaL2 = 0.4, envpaL3 = 1, envpaL4 = 0.02, envpaL5 = 0, envpaT1 = 0.1, envpaT2 = 0.4, envpaT3 = 0.03, envpaT4 = 0.2, envpaC1 = (-4), envpaC2 = (-4), envpaC3 = (-4), envpAmp = 1, envcaAtt = 0, envcaRel = 0.2, envcAmp = 1, cFundFreq = 910, cFormFreq = 4760, cBwFreq = 2110, lpfFreq = 3140, doneAction = 2;
     var env, body, bodyFreq, bodyAmp, pop, popFreq, popAmp, click, clickAmp, snd;
 
-	env = EnvGen.kr(Env.linen(att, 1, rel), doneAction: doneAction);
+	env = EnvGen.kr(Env.linen(atk, 1, rls), doneAction: doneAction);
 
     // body starts midrange, quickly drops down to low freqs, and trails off
     bodyFreq = Env.new(
@@ -807,16 +807,16 @@ SynthDef(\sosKickSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 1, subam
 }).add;
 
 SynthDef(\technokickSd, {
-	| out=0, amp=0.5, pan = 0, attack = 0.01, release = 6, freq=51.913087197493, rel=0.28571428571429, click=0.008, spread=0.1, damp=0.6, gate=1, doneAction = 2 |
+	| out=0, amp=0.5, pan = 0, atk = 0.01, rls = 6, freq=51.913087197493, dcy=0.28571428571429, click=0.008, spread=0.1, damp=0.6, gate=1, doneAction = 2 |
 	var sig, env, env1, aEnv, env2, wEnv, vEnv, low, high, dry, verb, verbHi, verbLo;
 	// env.ar is really good for this since thie envelopes are so short
-	env = EnvGen.kr(Env.linen(attack, 1, release), doneAction: doneAction);
-	env1 = EnvGen.ar(Env.adsr(0,0.1,0,0, curve: -4, bias: 1)); // initial attack
+	env = EnvGen.kr(Env.linen(atk, rls*2, rls), doneAction: doneAction);
+	env1 = EnvGen.ar(Env.adsr(0,0.1,0,0, curve: -8, bias: 1)); // initial attack
 	env2 = EnvGen.ar(Env.adsr(0,click,0,0,32, bias:1)); // click adder
-	aEnv = EnvGen.kr(Env.perc(0.005, rel/1.75, curve: 2)); // amplitude
+	aEnv = EnvGen.kr(Env.perc(0.005, rls/1.75, curve: 2)); // amplitude
 	wEnv = EnvGen.ar(Env.adsr(0,0.01,0,0, curve: -4));
 
-	vEnv = EnvGen.kr(Env.adsr(rel, rel/2, 1, 0.01, curve: 3), gate); // for reverb
+	vEnv = EnvGen.kr(Env.adsr(dcy, dcy/2, 1, 0.01, curve: 3), gate); // for reverb
 	// separate signals for extra processing
 	low  = SinOsc.ar(freq * env1 * env2);
 	high = WhiteNoise.ar() * wEnv * 0.6;
@@ -836,7 +836,7 @@ SynthDef(\technokickSd, {
 	dry = Pan2.ar(dry * aEnv);
 	// create reverb signal
 	// verb = FreeVerb2.ar(dry[0],dry[1],mix: 1,room: 1, damp: 1).distort * vEnv;
-	verb = GVerb.ar(dry, roomsize: 10, revtime: 5,
+	verb = GVerb.ar(dry, roomsize: 10, revtime: rls,
 		damping: damp, drylevel: 0, earlyreflevel: 0.5, taillevel: 1,
 		maxroomsize: 100, mul: 1) ;
 	// Sum the double stereo output into a single stereo one
@@ -891,7 +891,7 @@ SynthDef(\snareSd, { arg out=0, amp=0.1, pan = 0, tu=1, gate=1, freq=200, doneAc
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\snarenewSd, { arg out = 0, amp = 0.1, pan = 0, tu = 1, envpL1 = 110, envpL2 = 59, envpL3 = 29, envpT1 = 0.01, envpT2 = 0.2, curvep = (-4), envL1 = 0.5, envL2 = 1, envL3 = 0.5, envL4 = 0, envT1 = 0.005, envT2 = 0.058, envT3 = 0.261, curve = (-4), mixNoise = 0.5, hpf = 80, rqhpf = 0.8, freq1bpf = 527, freq2bpf = 530, rq1bpf = 0.5, rq2bpf = 0.5, lpf = 100, rqlpf = 0.8, mixBpf = 0.1, doneAction = 2;
+SynthDef(\snarenewSd, { arg out = 0, amp = 0.1, pan = 0, tu = 1, envpL1 = 110, envpL2 = 59, envpL3 = 29, envpT1 = 0.01, envpT2 = 0.2, curvep = (-4), envL1 = 0.5, envL2 = 1, envL3 = 0.5, envL4 = 0, envT1 = 0.005, envT2 = 0.058, envT3 = 0.261, curve = (-4), mixNoise = 0.5, hpFreq = 80, rqhpf = 0.8, freq1bpf = 527, freq2bpf = 530, rq1bpf = 0.5, rq2bpf = 0.5, lpf = 100, rqlpf = 0.8, mixBpf = 0.1, doneAction = 2;
     var sig, env, envp;
     /*var env = EnvGen.ar(Env.perc(0,0.8));
     var enf = EnvGen.ar(Env([16000,57,15000,11188.8],[0.001,0.001,0.0001],-4));*/
@@ -899,7 +899,7 @@ SynthDef(\snarenewSd, { arg out = 0, amp = 0.1, pan = 0, tu = 1, envpL1 = 110, e
 	envp = Env.new(levels: [envpL1, envpL2, envpL3], times: [envpT1, envpT2], curve: [curvep, curvep * 1.25]).kr.midicps;
     sig = SinOsc.ar(tu*envp,0,0.5)*env;
 	sig = ((PinkNoise.ar*env) * mixNoise) + (sig * (1 - mixNoise));
-    sig = RHPF.ar(sig, hpf*tu, rqhpf);
+    sig = RHPF.ar(sig, hpFreq*tu, rqhpf);
 	sig = (Mix.ar(BPF.ar(sig,[freq1bpf, freq2bpf],[rq1bpf, rq2bpf])) * mixBpf) + (sig * (1 - mixBpf));
     sig = RLPF.ar(sig, lpf, rqlpf);
     // sig = sig * EnvGen.ar(Env.perc(0,\rel.kr(1),4,-8),gate, doneAction: doneAction);
@@ -1583,7 +1583,7 @@ SynthDef(\cymnew1Sd, { arg out = 0, amp = 0.2, pan = 0, envL1 = 0, envL2 = 1, en
 	OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels, pan, amp));
 }).add;
 
-~synthSd = SynthDef(\cymbalicMcldSd, { |out=0, amp=0.5, pan=0, attLowf = 0.5, relLowf = 5, lowNoiseLev = 0.1, attHif = 1, relHif = 3, hiNoiseLev = 0.1, attHi = 1, relHi = 2, hiLev = 0.25, attTh = 0.001, relTh = 0.001, freq1 = 627, freq2 = 2961, freq3 = 7824, freq4 = 476, gate = 1, doneAction = 2|
+SynthDef(\cymbalicMcldSd, { |out=0, amp=0.5, pan=0, attLowf = 0.5, relLowf = 5, lowNoiseLev = 0.1, attHif = 1, relHif = 3, hiNoiseLev = 0.1, attHi = 1, relHi = 2, hiLev = 0.25, attTh = 0.001, relTh = 0.001, freq1 = 627, freq2 = 2961, freq3 = 7824, freq4 = 476, gate = 1, doneAction = 2|
 	var lodriver, locutoffenv, hidriver, hicutoffenv, freqs, res, thwack, sig;
 
 	locutoffenv = EnvGen.kr(Env.perc(attLowf, relLowf), gate, doneAction: doneAction) * 20000 + 10;
@@ -1741,7 +1741,7 @@ var env, signal, attack, noise, hpf1, hpf2;
 	OffsetOut.ar(out, DirtPan.ar(signal, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\oneclapThorBrSd, { arg out = 0, amp = 0.1, pan = 0, attack = 0.01, release = 1, att = 0.003, rel = 0.00035, tone = 0.4, noiseAmp = 1, freq = 100, rq = 0.1,
+SynthDef(\oneclapThorBrSd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.01, rls = 1, atkT = 0.003, relT = 0.00035, tone = 0.4, noiseAmp = 1, freq = 100, rq = 0.1,
 	//Other Controls
 	echohz1 = 33.333, echohz2 = 33.156, curve = -4, decay = 0.06, shelfFreq = 7000, rs = 0.5, db = -3,
 	// Controls Ranging from 0 to 1
@@ -1762,7 +1762,7 @@ SynthDef(\oneclapThorBrSd, { arg out = 0, amp = 0.1, pan = 0, attack = 0.01, rel
 
 	hpf2 = RHPF.ar(in: noise1, freq: freq/2, rq: rq/4);
 
-	env = Env.perc(attackTime: att, releaseTime: rel, curve: curve).kr;
+	env = Env.perc(attackTime: atkT, releaseTime: relT, curve: curve).kr;
 
 	snd = Mix.ar(hpf1 + hpf2) * env;
 
@@ -1774,7 +1774,7 @@ SynthDef(\oneclapThorBrSd, { arg out = 0, amp = 0.1, pan = 0, attack = 0.01, rel
 
 	snd = BHiShelf.ar(in: snd, freq: shelfFreq, rs: rs, db: db);
 
-	snd = snd * EnvGen.kr(Env.linen(attack, 1, release), doneAction: doneAction);
+	snd = snd * EnvGen.kr(Env.linen(atk, 1, rls), doneAction: doneAction);
 	// DetectSilence.ar(snd, doneAction: doneAction);
 
 	// OffsetOut.ar(out, Pan2.ar(snd, pan));
@@ -1991,7 +1991,7 @@ SynthDef(\resSd, { | out = 0, amp = 1, pan = 0, att = 0, rel = 0.7, freqSin = 52
 	OffsetOut.ar(out, Pan2.ar(flt, pan, amp));
 }).add;*/
 
-SynthDef(\mutantFricSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release = 1, spec1 = 0.00001, spec2 = 0.03, noiseFreq = 3, sigFreq = 50, spring = 0.414, damp = 0.313, beltmass = 1, source = 0, hpfFreq = 50, gate = 1, doneAction = 2;
+SynthDef(\mutantFricSd, { arg out = 0, amp = 1, pan = 0, atk = 0.01, rls = 1, spec1 = 0.00001, spec2 = 0.03, noiseFreq = 3, sigFreq = 50, spring = 0.414, damp = 0.313, beltmass = 1, source = 0, hpfFreq = 50, gate = 1, doneAction = 2;
 	var friction, sig;
 	friction = Array.fill(5, {
 		[spec1.max(0.00001), spec2.max(0.03)].asSpec.map(LFNoise2.kr(noiseFreq))
@@ -2006,7 +2006,7 @@ SynthDef(\mutantFricSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release 
 	]);
 	sig = Friction.ar(sig, friction, Lag2.kr(spring), damp, friction*30000, beltmass);
 	sig = HPF.ar(sig, hpfFreq);
-	sig = sig * EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+	sig = sig * EnvGen.kr(Env.asr(atk, releaseTime: rls), gate, doneAction: doneAction);
 
 	// OffsetOut.ar(out, Splay.ar(sig * amp));
 	OffsetOut.ar(out, DirtPan.ar(Splay.ar(sig), ~dirt.numChannels, pan, amp));
@@ -2144,9 +2144,9 @@ SynthDef(\attBreathSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release =
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\attWindSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release = 2, seq1 = 1, seq2 = 1, seq3 = 4, seq4 = 2, seq5 = 2, seqDiv = 8, freq1 = 250, freq2 = 8000, bwrLo = 0.01, bwrHi = 0.5, gate = 1, doneAction = 2;
+SynthDef(\attWindSd, { arg out = 0, amp = 1, pan = 0, atk = 0.01, rls = 2, seq1 = 1, seq2 = 1, seq3 = 4, seq4 = 2, seq5 = 2, seqDiv = 8, freq1 = 250, freq2 = 8000, bwrLo = 0.01, bwrHi = 0.5, gate = 1, doneAction = 2;
 	var sig, env;
-	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
+	env = EnvGen.kr(Env.asr(atk, releaseTime: rls), gate, doneAction: doneAction);
 	sig = TDuty.kr(Dseq([seq1, seq2, seq3, seq4, seq5] / seqDiv, inf));
 	sig = Resonz.ar(
 		WhiteNoise.ar!2,
@@ -2251,17 +2251,17 @@ SynthDef(\lumbricostSd, {arg out = 0, amp = 0.2, pan = 0, attTim= 1, relTim=2.5,
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * env));
 }).add;*/
 
-SynthDef(\plouxSd, { arg out = 0, amp = 0.1, pan = 0, att = 0.1, dec = 0.1, sus = 0.8, rel = 0.1, feedBack = 0, fbPost = 0, dustfreq = 2, dustdecay = 0.7, freq = 200, fmfreq = 100, folAtt = 0.01, folDec = 0.2, sinMix = 1, a = 1, b = 3, c = 0.5, d = 0.5, xi = 0.5, yi = 0.5, gate = 1, doneAction = 2;
+SynthDef(\plouxSd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.1, dec = 0.1, stn = 0.8, rls = 0.1, feedBack = 0, fbPost = 0, dustfreq = 2, dustdecay = 0.7, frq = 200, fmfreq = 100, folAtt = 0.01, folDec = 0.2, sinMix = 1, a = 1, b = 3, c = 0.5, d = 0.5, xi = 0.5, yi = 0.5, gate = 1, doneAction = 2;
     var sig, dust, input, inMod, envFol, freqMod;
 	input = LocalIn.ar(2);
 	inMod = input * feedBack;
     dust = Dust.ar(dustfreq);
     dust = Decay.ar(dust, dustdecay);
 	freqMod = SinOsc.ar(fmfreq * dust) * inMod + 1;
-    sig = SinOsc.ar(freq * freqMod);
+    sig = SinOsc.ar(frq * freqMod);
 	envFol = Amplitude.kr(sig, folAtt, folDec);
 	sig = (sig * sinMix) + (RHPF.ar(LatoocarfianN.ar(freqMod.range(2000, 22050), a, b, c, d, xi, yi, LFNoise0.kr(dust)), input.range(20, 20000)) * (1 - sinMix));
-    sig = sig * EnvGen.kr(Env.adsr(att, dec, sus, rel), gate, doneAction: doneAction);
+    sig = sig * EnvGen.kr(Env.adsr(atk, dec, stn, rls), gate, doneAction: doneAction);
 	LocalOut.ar(sig * fbPost);
 	sig = sig.tanh;
     // sig = Pan2.ar(sig, pan, amp);
@@ -2348,13 +2348,13 @@ SynthDef(\benjolisSd,{ |out = 0, amp = 0.1, pan = 0, fadeTime = 0.01, freq1= 40,
 	OffsetOut.ar(out, DirtPan.ar(output * EnvGate(fadeTime: fadeTime, doneAction: doneAction), ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\bytebeatsSd, { arg out = 0, amp = 0.2, pan = 0, envL1 = 0, envL2 = 1, envL3 = 0.2, envL4 = 3.2, envL5 = 0, envT1 = 0.12, envT2 = 0.02, envT3 = 0, envT4 = 0.2, curve1 = (-4), curve2 = (-4), curve3 = (-4), curve4 = (-4), counterFreq = 1, counterMul = 3.5, counterAdd = 3.5, srDiv = 6, freq = 232, doneAction = 2;
+SynthDef(\bytebeatsSd, { arg out = 0, amp = 0.2, pan = 0, envL1 = 0, envL2 = 1, envL3 = 0.2, envL4 = 3.2, envL5 = 0, envT1 = 0.12, envT2 = 0.02, envT3 = 0, envT4 = 0.2, curve1 = (-4), curve2 = (-4), curve3 = (-4), curve4 = (-4), counterFreq = 1, counterMul = 3.5, counterAdd = 3.5, srDiv = 6, frq = 232, doneAction = 2;
 	//var sr = SampleRate.ir/6; //fix sample rate
 	var counter, env;
 	var sr = SampleRate.ir/srDiv; //variable sample rate
-	//var freq = 10;
+	//var frq = 10;
 	var n = 16; //bit resolution
-	var t= Phasor.ar(1,freq*((2**n)/sr),0,((2**n)-1)); //creating a raising value from 0 to 2**n
+	var t= Phasor.ar(1,frq*((2**n)/sr),0,((2**n)-1)); //creating a raising value from 0 to 2**n
 	//t = t & (2**(n-1)); // few tests
 	env = EnvGen.kr(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4], [curve1, curve2, curve3, curve4]), doneAction: doneAction);
 	//equations: try one at the time
@@ -2381,7 +2381,7 @@ SynthDef(\bytebeatsSd, { arg out = 0, amp = 0.2, pan = 0, envL1 = 0, envL2 = 1, 
 	OffsetOut.ar(out, DirtPan.ar(t, ~dirt.numChannels, pan, env));
 }).add;
 
-SynthDef(\feedbackOscSd, {|out=0, amp = 0.2, pan = 0, attack=0.01, release=1, mFrq= 313, mFB= 1, frq= 100, fB= 1, width= 0, mul= 500, ffreq=1000, rq=1, gate = 1, doneAction = 2|
+~synthSd = SynthDef(\feedbackOscSd, {|out=0, amp = 0.2, pan = 0, atk=0.01, rls=1, mFrq= 313, mFB= 1, frq= 100, fB= 1, width= 0, mul= 500, ffreq=1000, rq=1, gate = 1, doneAction = 2|
 	var w= [0, width*2pi];
 	var buf= LocalBuf(1).clear;
 	var buf2= LocalBuf(1, 2).clear;
@@ -2391,7 +2391,7 @@ SynthDef(\feedbackOscSd, {|out=0, amp = 0.2, pan = 0, attack=0.01, release=1, mF
 	var snd2= Duty.ar(SampleDur.ir, 0, Dbufwr(osc2, buf2));
 	//var filter= RLPF.ar(snd2, ffreq, rq);
 	var filter = DFM1.ar(snd2, ffreq, rq);
-	var env = EnvGen.ar(Env.asr(attack, 1, release),gate,doneAction: doneAction);
+	var env = EnvGen.ar(Env.perc(atk, rls),gate,doneAction: doneAction);
 	// OffsetOut.ar(out,filter * amp * env/*EnvGate(gate: gate, doneAction: doneAction)*/);
 	OffsetOut.ar(out, DirtPan.ar(filter, ~dirt.numChannels, pan, amp * env));
 }).add;
