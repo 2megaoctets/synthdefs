@@ -3623,7 +3623,7 @@ SynthDef(\sin_pulsarSd, { arg out = 0, pan = 0, doneAction = 2;
 	OffsetOut.ar(out, DirtPan.ar(d, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\fm_pulsar, { arg out = 0, pan = 0, doneAction = 2;
+SynthDef(\fm_pulsarSd, { arg out = 0, pan = 0, doneAction = 2;
     var a, e, f;
     var t, overlap, carfreq, modfreq, mInd, vel, vel_;
 
@@ -3665,7 +3665,7 @@ SynthDef(\fm_pulsar, { arg out = 0, pan = 0, doneAction = 2;
 	OffsetOut.ar(out, DirtPan.ar(a * \gain.kr(0.1), ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\pm4, {
+SynthDef(\pm4Sd, {
 
     var numops = 4;
     var fb = LocalIn.ar(numops);
@@ -3753,7 +3753,7 @@ SynthDef(\pm4, {
 
 }).add;
 
-SynthDef(\sawFiltKyma, { |out = 0, amp = 0.1, pan = 0, freq = 440, cf = 100, wobble = 3, t_bd, t_sd, pw = 0.4, gate = 1, doneAction = 2|
+SynthDef(\sawFiltKymaSd, { |out = 0, amp = 0.1, pan = 0, freq = 440, cf = 100, wobble = 3, t_bd, t_sd, pw = 0.4, gate = 1, doneAction = 2|
     var base = Splay.ar(RLPF.ar(Pulse.ar(freq * [0.99,0.5,1.01],pw),cf.lag(0.05),0.3).madd(SinOsc.ar(wobble).range(0.5,4)).sin) * 0.5;
     var env = Linen.kr(gate, attackTime: 0.01, releaseTime: 0.5, doneAction: doneAction);
     var sig = base;
