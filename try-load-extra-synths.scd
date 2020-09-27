@@ -6,5 +6,4 @@ if(\MembraneHexagon.asClass.isNil) {
 	loadRelative("../library/custom-synthdefs.scd");
 	loadRelative("../library/bgold-tidal5.scd");
 	loadRelative("../library/coopt-synthdefs.scd");
-	loadRelative("../library/generative_SynthDef_2Mo.scd");
 };
