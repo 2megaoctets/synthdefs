@@ -1198,7 +1198,7 @@ SynthDef(\snareElectroSd, { arg out = 0, amp = 0.4, pan = 0, att = 0.001, rel = 
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
 }).add;
 
-~synthSd = SynthDef(\snareSteinSd, { arg out = 0, amp = 1, pan = 0, att = 0.0005, curve = -4, tonerel = 0.075, noiserel = 0.2,
+SynthDef(\snareSteinSd, { arg out = 0, amp = 1, pan = 0, att = 0.0005, curve = -4, tonerel = 0.075, noiserel = 0.2,
 	//Other Controls, blend ranges from 0 to 1.
 	noisetop = 7040, noisebottom = 523, noiseamp = 0.2, tonelo = 185, tonehi = 330, toneamp = 0.5, blend = 0.2,
 	doneAction = 2;
@@ -1827,12 +1827,12 @@ SynthDef(\clapGraySd, { arg out = 0, amp = 0.1, pan = 0, att = 0.001, rel = 0.25
 
 ///////////////////////////////////////  Noise
 
-SynthDef(\IkedaBreathSd, { arg out = 0, level = 1, pan = 0, attack = 0.0001, decay = 0.4, release = 0.01, note1 = 44, note2 = 90, amp1 = 0.5, amp2 = 0.6, lpfFreq = 103.82, hpfFreq = 2400, gate = 0, doneAction = 2;
+~synthSd = SynthDef(\IkedaBreathSd, { arg out = 0, level = 1, pan = 0, atk = 0.0001, dcy = 0.4, rls = 0.5, note1 = 44, note2 = 90, amp1 = 0.5, amp2 = 0.6, lpfFreq = 1003.82, hpfFreq = 240, gate = 1, doneAction = 2;
 	var sin, lpf, hpf, sig;
 	sin = SinOsc.ar(note1.midicps, 0, amp1) + SinOsc.ar(note2.midicps, 0, amp2);
 	lpf = LPF.ar(sin, lpfFreq.max(1));
 	hpf = HPF.ar(LPF.ar(WhiteNoise.ar(0.008), 12000), hpfFreq.max(1));
-	sig = (lpf + hpf) * EnvGen.kr(Env(#[0, 1, 0.6, 0], [attack, decay, release]), gate, doneAction: doneAction); // # makes a totally fixed (non-dynamic) Array and is slightly cheaper, especially where you're not going to change the Array once you make it
+	sig = (lpf + hpf) * EnvGen.kr(Env(#[0, 1, 0.6, 0], [atk, dcy, rls]), gate, doneAction: doneAction); // # makes a totally fixed (non-dynamic) Array and is slightly cheaper, especially where you're not going to change the Array once you make it
 	// OffsetOut.ar(out, Pan2.ar(sig, pan, level));
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, level));
 }).add;
