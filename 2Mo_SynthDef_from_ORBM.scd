@@ -1827,7 +1827,7 @@ SynthDef(\clapGraySd, { arg out = 0, amp = 0.1, pan = 0, att = 0.001, rel = 0.25
 
 ///////////////////////////////////////  Noise
 
-~synthSd = SynthDef(\IkedaBreathSd, { arg out = 0, level = 1, pan = 0, atk = 0.0001, dcy = 0.4, rls = 0.5, note1 = 44, note2 = 90, amp1 = 0.5, amp2 = 0.6, lpfFreq = 1003.82, hpfFreq = 240, gate = 1, doneAction = 2;
+SynthDef(\IkedaBreathSd, { arg out = 0, level = 1, pan = 0, atk = 0.0001, dcy = 0.4, rls = 0.5, note1 = 44, note2 = 90, amp1 = 0.5, amp2 = 0.6, lpfFreq = 1003.82, hpfFreq = 240, gate = 1, doneAction = 2;
 	var sin, lpf, hpf, sig;
 	sin = SinOsc.ar(note1.midicps, 0, amp1) + SinOsc.ar(note2.midicps, 0, amp2);
 	lpf = LPF.ar(sin, lpfFreq.max(1));

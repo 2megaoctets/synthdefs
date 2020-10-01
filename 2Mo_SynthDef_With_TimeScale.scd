@@ -138,10 +138,10 @@ SynthDef(\kickParallaxSusSd, { arg out = 0, amp = 1, pan = 0, envAmpAtt = 0.01, 
 }).add;
 
 SynthDef(\rc808KickSusSd, {
-    arg out = 0, pan = 0, decay = 30, amp = 2, gate = 0, tone = 56, sustain = 1, doneAction = 2;
+    arg out = 0, pan = 0, dcy = 30, amp = 2, gate = 0, tone = 56, sustain = 1, doneAction = 2;
     var fenv, env, trienv, sig, sub, punch, pfenv;
-    env = EnvGen.kr(Env.new([0.11, 1, 0], [0, decay], -225), timeScale: sustain, doneAction:2);
-    trienv = EnvGen.kr(Env.new([0.11, 0.6, 0], [0, decay], -230), doneAction:0);
+    env = EnvGen.kr(Env.new([0.11, 1, 0], [0, dcy], -225), timeScale: sustain, doneAction:2);
+    trienv = EnvGen.kr(Env.new([0.11, 0.6, 0], [0, dcy], -230), doneAction:0);
     fenv = Env([tone*7, tone*1.35, tone], [0.05, 0.6], -14).kr;
     pfenv = Env([tone*7, tone*1.35, tone], [0.03, 0.6], -10).kr;
     sig = SinOsc.ar(fenv, pi/2) * env;
@@ -151,6 +151,84 @@ SynthDef(\rc808KickSusSd, {
     sig = (sig + sub + punch) * 2.5;
     sig = Limiter.ar(sig, 0.5) * amp;
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\sosKickSusSd, { arg out = 0, amp = 1, pan = 0, atk = 0.01, rls = 1, subamp = 1, drumAmp = 1, beaterAmp = 0.02, clickAmp = 1,
+	// sub controls
+	startsubfreq = 60, endsubfreq = 32, linesubdur = 0.08, subdecay = 0.2, sublowpass = 500,
+	// drum controls
+	drumFreq = 50, drumHarmonic = 2, drumSweep = 0.02, drumAtt = 0.005, drumRel = 0.4, curve = (-4),
+	drumFilter = 1000, modIndex = 6.5, modFreq = 5,
+	// beater controls
+	beaterFreq = 500, beaterHarmonic = 12, beaterSweep = 0.03, noiseMod = 500, beaterL1 = 0, beaterL2 = 1, beaterL3 = 2.4, beaterL4 = 0, beaterT1 = 0.01, beaterT2 = 0.3, beaterT3 = 0.08,
+	// click controls
+	clkffreq = 500, clkres = 0,
+	gate = 1, sustain = 1, doneAction = 2;
+
+	var subfreq, sub, drumEnv, drumContour, drum, beaterContour, beaterEnv, beater, snd, click, envClick;
+
+	subfreq = XLine.kr(startsubfreq, endsubfreq, linesubdur, 1, 0);
+
+	sub = LPF.ar(Ringz.ar(Impulse.ar(0), subfreq, subdecay), sublowpass) * subamp;
+
+	drumEnv = Env.perc(attackTime: drumAtt, releaseTime: drumRel, curve: curve).kr;
+
+	sub = sub * drumEnv;
+
+	drumContour = Line.kr(start: drumFreq * drumHarmonic, end: drumFreq, dur: drumSweep);
+
+	drum = PMOsc.ar(
+		carfreq: drumContour,
+		modfreq: modFreq,
+		pmindex: modIndex,
+		mul: drumAmp
+	);
+
+	drum = LPF.ar(in: drum, freq: Lag2.kr(drumFilter), mul: drumEnv);
+
+	beaterEnv = Env([beaterL1, beaterL2, beaterL3, beaterL4], [beaterT1, beaterT2, beaterT3]).kr;
+
+	beaterContour = Line.kr(start: (beaterFreq * beaterHarmonic).min(20000), end: beaterFreq, dur: beaterSweep);
+
+	beater = HPF.ar(in: WhiteNoise.ar(LFNoise0.kr(noiseMod)), freq: beaterFreq);
+
+	beater = LPF.ar(in: beater, freq: beaterContour, mul: beaterEnv) * beaterAmp;
+
+	envClick = EnvGen.kr(Env.step([700, 0], [0.0007, 0.1]), gate, 0.002);
+	click = Hasher.ar(Sweep.ar(gate, 0.000001)) * envClick;
+	click = MoogLadder.ar(click, clkffreq, clkres) * EnvGen.kr(Env.perc(0.0001, 0.00001), gate, clickAmp);
+
+	snd = Mix.ar(sub + drum + beater + click) * amp;
+
+	snd = snd * EnvGen.kr(Env.asr(atk, 1, rls), gate, timeScale: sustain, doneAction: doneAction);
+    //DetectSilence.ar(in: snd, doneAction: doneAction);
+
+    // OffsetOut.ar(out, Pan2.ar(snd, pan));
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\drumkickSusSd, { arg out = 0, amp = 0.5, pan = 0.0, atk = 0.0001, rls = 0.09, curve = 8, attSinFreq = 0.0001, relSinFreq = 1.5, curveSinFreq = (-200), levSin = 1, attBpfFreq = 0.001, relBpfFreq = 0.3, timeScaleBpf = 1.5, curveBpf =(-200), levBpf = 1, levScaleBpf = 6000, levBiasBpf = 70, lineStartBpf = 0.3, lineEndBpf = 0, lineLevBpf = 0.1, gate = 1, sustain = 1, doneAction = 2;
+	var source;
+
+	source = SinOsc.ar(EnvGen.kr(Env.perc(attSinFreq, relSinFreq, levSin, curveSinFreq), gate, 1000, 45), 1, 1) +
+	((BPF.ar([GrayNoise.ar(6),GrayNoise.ar(6)], EnvGen.kr(Env.perc(attBpfFreq, relBpfFreq, levBpf, curveBpf), gate, levScaleBpf, levBiasBpf.max(0.1)), timeScaleBpf.max(0.01))).distort * Line.kr(lineStartBpf, lineEndBpf, lineLevBpf)) * EnvGen.kr(Env.perc(atk, rls, curve: curve), gate, timeScale: sustain, doneAction: doneAction);
+
+	// OffsetOut.ar(out, Pan2.ar(source, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(source, ~dirt.numChannels, pan, amp));
+}).add;
+
+~synthSd = SynthDef(\tabassSusSd, { arg out = 0, amp = 0.8, pan = 0, gate = 1, atk = 0.01, rls = 2, frq = 1, lfnFrq = (1/2), sustain = 1, doneAction = 2;
+	var sig, env;
+	env = EnvGen.kr(Env.asr(atk, releaseTime: rls), gate, timeScale: sustain, doneAction: doneAction);
+	sig = LFTri.ar(frq) * Impulse.kr(0);
+	20.do{
+		sig = BAllPass.ar(sig,80,1);
+		sig = ((sig+0.02)*LFNoise0.kr(lfnFrq).range(0.1, 0.98)*6).tanh;
+		sig = LeakDC.ar(sig,0.995);
+	};
+	sig = sig * env;
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  HiHat
@@ -253,6 +331,27 @@ SynthDef(\complexoscSusSd, { arg out = 0, amp = 1, pan = 0, feedBack = 1, envL1 
     // OffsetOut.ar(out, outlet * env * amp);
 	OffsetOut.ar(out, DirtPan.ar(outlet, ~dirt.numChannels, pan, amp * env));
 }, [\kr ! 12, \ar ! 15, \kr, \tr, \ir].flat).add;
+
+SynthDef(\mutantFricSusSd, { arg out = 0, amp = 1, pan = 0, atk = 0.01, rls = 1, spec1 = 0.00001, spec2 = 0.03, noiseFreq = 3, sigFreq = 50, spring = 0.414, damp = 0.313, beltmass = 1, source = 0, hpfFreq = 50, gate = 1, sustain = 1, doneAction = 2;
+	var friction, sig;
+	friction = Array.fill(5, {
+		[spec1.max(0.00001), spec2.max(0.03)].asSpec.map(LFNoise2.kr(noiseFreq))
+	});
+	sig = Select.ar(source, [
+		LFTri.ar(sigFreq),
+		LFPar.ar(sigFreq),
+		LFCub.ar(sigFreq),
+		LFSaw.ar(sigFreq),
+		LFDNoise3.ar(sigFreq),
+		LFDNoise0.ar(sigFreq)
+	]);
+	sig = Friction.ar(sig, friction, Lag2.kr(spring), damp, friction*30000, beltmass);
+	sig = HPF.ar(sig, hpfFreq);
+	sig = sig * EnvGen.kr(Env.asr(atk, releaseTime: rls), gate, timeScale: sustain, doneAction: doneAction);
+
+	// OffsetOut.ar(out, Splay.ar(sig * amp));
+	OffsetOut.ar(out, DirtPan.ar(Splay.ar(sig), ~dirt.numChannels, pan, amp));
+}).add;
 
 ///////////////////////////////////////  Tonal
 
