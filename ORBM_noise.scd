@@ -691,7 +691,7 @@ SynthDef(\werkit2Sd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.01, dcy = 0, sst
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
 }).add;
 
-~\impnSd = SynthDef(\impnSd,{ arg out = 0, amp=0.75, pan = 0, atk = 0.001, rls = 0.1, curve = (-5), impRate = 10, kfreq = 1, kdcy = 1, tu = 1, freq = 10327, bwr = 1, delTime = 0.25, decTime = 1, doneAction = 2;
+SynthDef(\impnSd,{ arg out = 0, amp=0.75, pan = 0, atk = 0.001, rls = 0.1, curve = (-5), impRate = 10, kfreq = 1, kdcy = 1, tu = 1, freq = 10327, bwr = 1, delTime = 0.25, decTime = 1, doneAction = 2;
 	var env, sig;
 	env = EnvGen.kr(Env.linen(atk, 1, rls, 1, curve), doneAction: doneAction);
 	sig = Impulse.ar(impRate);
