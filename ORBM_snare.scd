@@ -90,7 +90,7 @@
 		OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 	}).add;
 
-	t5snareSd = SynthDef(\t5snareSd, { arg out=0, amp=0.3, pan=0, tu=1, freq=200, gate=1, doneAction = 2;
+	SynthDef(\t5snareSd, { arg out=0, amp=0.3, pan=0, tu=1, freq=200, gate=1, doneAction = 2;
 		var sig;
 		var env = EnvGen.ar(Env.perc(0.01,1));
 		var enf = EnvGen.ar(Env([600,177,230],[0.01,0.1],-4));
