@@ -542,6 +542,26 @@ SynthDef(\windowsyncSusSd, { |out = 0, pan = 0, freq = 65.40639132515, amp = 0.1
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * eg));
 }).add;
 
+SynthDef(\lcm2, { arg out = 0, amp = 0.1, pan = 0, atk = 0.001, rls = 0.2, sustain = 1, mod1 = 3.09431, mod2 = 54.0487, gate = 1, doneAction = 2;
+    var sig, sig1, sig2, env;
+
+    env = EnvGen.kr(Env.asr(atk, 1, rls), gate, timeScale: sustain, doneAction: doneAction);
+
+    mod1 = mod1.min(1000).max(1);
+    mod2 = mod2.min(1000).max(1);
+
+    sig1 = Saw.ar(mod1).range(-100,100).round(1);
+    sig2 = LFCub.ar(mod2).range(-100,100).round(1);
+
+    sig = tanh(lcm(sig1, sig2) * 0.001);
+
+    sig = sig * env;
+    /*sig = Pan2.ar(sig, pan, amp);
+    OffsetOut.ar(out, sig);*/
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\talters1SusSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, sustain = 1, release = 10, feedBack = 1, envL1 = 0, envL2 = 2, envL3 = 4, envL4 = 16, envT1 = 0.01, envT2 = 0.2, envT3 = 0.12, envCurve = (-4), decDens = 0.25, decTimeFreq = 0.1, decamp = 999, gate = 1, doneAction = 2;
