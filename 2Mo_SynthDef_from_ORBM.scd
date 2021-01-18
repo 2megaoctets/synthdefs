@@ -4386,22 +4386,6 @@ SynthDef(\mcldSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 10, impFreq
 }).add;
 
 // new
-/*SynthDef(\rohrhuberSd, { arg out = 0, amp = 1, pan = 0, lfnFreq1 = 2, lfnFreq2 = 62, att = 0.01, rel = 2, doneAction = 2;
-	var sig, env;
-	//env = Linen.kr(gate, att, 1, rel, doneAction);
-	env = EnvGen.ar(Env.linen(att, 1, rel), doneAction: doneAction);
-	Ndef(\x, {
-		SinOsc.ar(
-			BrownNoise.ar(30 ! 2, 200),
-			Ndef(\x).ar * LFNoise1.kr([17, 4], 1, 1)
-			)
-		});
-	sig = Ndef(\x) * LFNoise0.kr([lfnFreq1, lfnFreq2]) * env * amp;
-	// OffsetOut.ar(out, sig);
-	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
-	}).add;
-*/
-
 /* SynthDef(\padovanSd, { arg out = 0, amp = 1, pan = 0, tridDur = 1, freq = 165, roomSize = 9, doneAction = 2;
 	var sig, env, input, mod, grainTr, sinMod;
 	// env = Linen.kr(gate, 0.1, 1, 5, doneAction);
@@ -4417,8 +4401,7 @@ SynthDef(\mcldSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 10, impFreq
 	sig = GVerb.ar(sig, roomSize, mul: amp);
 	// OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
-	}).add;
-*/
+}).add;*/
 
 /*SynthDef(\batuhanSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 5, tridDur = 0.125, decayTime = 0.3, sawFreq = 8, brfFreq1 = 45.1, brfFreq2 = 45, doneAction = 2;
 	var sig, env, core;
@@ -4436,24 +4419,6 @@ SynthDef(\mcldSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 10, impFreq
 	// OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
 }).add;*/
-
-SynthDef(\lirgoSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 1, gate = 1, doneAction = 0;
-	var sig, env, bpf;
-
-	env = Linen.kr(gate, att, 1, rel, doneAction);
-	//env = EnvGen.ar(Env.linen(att, 1, rel), doneAction: doneAction);
-	sig = Ndef('x', {
-		sig = Ndef('x').ar + 0.01;
-		bpf = BPF.ar(sig, 6 ** Latch.ar(sig, Dust.ar(sig)) * 150, 0.2).sin;
-		4.do{
-			bpf = AllpassN.ar(bpf, 0.2, {0.2.rand}!2, 9)
-		};
-		bpf + bpf.mean;
-	});
-	sig = sig * env * amp * 0.1;
-	OffsetOut.ar(out, sig);
-	// OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
-}).add;
 
 SynthDef(\nozkurtSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 5, sinFreq = 55, impMin = 0.0002, impMax = 0.7, impFreq = 8, doneAction = 2;
 	var sig, env, delayTime;
@@ -4598,4 +4563,3 @@ SynthDef(\LiljedRainSd, { arg out = 0, amp = 0.6, pan = 0, attack = 0.01, releas
 }).add;
 
 )
-
