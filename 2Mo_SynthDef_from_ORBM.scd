@@ -391,7 +391,7 @@ SynthDef(\tweetBassLeakSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, rel
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\tweetKickIntSd, { arg out = 0, amp = 1, pan = 0, atk = 0.01, rls = 2, impfreq = 2, phRate = 64, lagFreq = 2, inAmt = 99, coef1 = 0.9, coef2 = 0.99, doneAction = 2;
+SynthDef(\tweetKickIntSd, { arg out = 0, amp = 0.3, pan = 0, atk = 0.01, rls = 2, impfreq = 2, phRate = 64, lagFreq = 2, inAmt = 99, coef1 = 0.9, coef2 = 0.99, doneAction = 2;
 	var sig, freq, phase, env, i;
 	i = Impulse.ar(_);
 	freq = i.(impfreq).lagud(0,0.4)*360;
@@ -507,11 +507,12 @@ SynthDef(\kickySd,{ arg out = 0, amp=1, pan = 0, startFreq=80, endFreq=15, lengt
 	sig = LPF.ar(sig,BrownNoise.kr(500,1500))*0.3;
 	sig = sig * gain;
 	sig = sig.softclip * amp * env;
+	sig = LeakDC.ar(sig);
 	// OffsetOut.ar(out, [sig,sig]);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\kickeySd,{ arg out = 0, amp = 1, pan = 0, att = 0.0014, rel = 0.8, curve = (-5), startFreq = 60, endFreq = 10, linedur = 0.8, decay = 0.8, lowpass = 500, rq = 1, gain = 1, smoothLo = (-1), smoothHi = 1, foldRange = 1, smoothAmount = 0.5, doneAction = 2;
+SynthDef(\kickeySd,{ arg out = 0, amp = 0.3, pan = 0, att = 0.0014, rel = 0.8, curve = (-5), startFreq = 60, endFreq = 10, linedur = 0.8, decay = 0.8, lowpass = 500, rq = 1, gain = 1, smoothLo = (-1), smoothHi = 1, foldRange = 1, smoothAmount = 0.5, doneAction = 2;
 	var sig, env, freq;
 	freq = XLine.kr(startFreq, endFreq, linedur, 1, 0);
 	env = EnvGen.kr(Env.perc(att, rel, 1, curve), 1, doneAction: doneAction);
@@ -737,7 +738,7 @@ SynthDef(\kick_electroSd, { arg out = 0, amp = 0.3, pan = 0, atk = 0.01, rls = 0
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\kik3BrSd, { arg out = 0, amp = 1, pan = 0, freq = 66, att = 0.01, dec = 0.1, decaylevel = 0.8, rel = 0.3, envCurve = -4, sweeptime = 0.08, sweepCurve = 2, harmonic = 6, preamp = 3;
+SynthDef(\kik3BrSd, { arg out = 0, amp = 0.3, pan = 0, freq = 66, att = 0.01, dec = 0.1, decaylevel = 0.8, rel = 0.3, envCurve = -4, sweeptime = 0.08, sweepCurve = 2, harmonic = 6, preamp = 3;
 	var snd, env, fenv;
 
 	env = Env.new(levels: [0, amp, decaylevel * amp, 0], times: [att, dec, rel], curve: envCurve).kr(doneAction: 2);
