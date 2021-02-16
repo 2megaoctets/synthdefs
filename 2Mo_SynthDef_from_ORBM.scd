@@ -1439,7 +1439,7 @@ SynthDef(\hatYSd,{arg gate = 1, pan = 0, amp = 1, out = 0, rel = 0.1, doneAction
 	OffsetOut.ar(out, DirtPan.ar(sig.tanh*12, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\hatnewSd, {|out=0, amp=1, pan=0, freq=230, hpf=8500, rel=0.15, fxb=0, fxv=0, bbcb=0, bbcv=0, doneAction = 2|
+SynthDef(\hatnewSd, {|out=0, amp=0.3, pan=0, freq=230, hpf=8500, rel=0.15, fxb=0, fxv=0, bbcb=0, bbcv=0, doneAction = 2|
 	var pulse, sig, env, freqs;
 	freqs = [freq, freq*1.4471, freq*1.617, freq*1.9265, freq*2.5028, freq*2.6637];
 	pulse = Mix.ar(Pulse.ar(freqs, {0.9.rand}!6, mul: 1));
