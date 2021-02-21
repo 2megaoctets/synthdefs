@@ -114,7 +114,7 @@ SynthDef(\kickMistSd, { arg out = 0, level = 1, pan = 0, tu = 1, noise = 1, env0
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, level));
 }).add;
 
-SynthDef(\kickhiSd, { arg out = 0, amp = 1, pan = 0, vcaLev1 = 0.5, vcaLev2 = 0.1, vcaLev3 = 0.01, vcaLev4 = 0.01, vcaLev5 = 0, vcaTime1 = 0.01, vcaTime2 = 0.5, vcaTime3 = 1.26, vcaTime4 = 0.1, vcaCurve1 = (-4), vcaCurve2 = (-2), vcaCurve3 = (-4), vcfLev1 = 122, vcfLev2 = 30, vcfLev3 = 33, vcfLev4 = 28, vcfTime1 = 0.05, vcfTime2 = 0.29, vcfTime3 = 1, vcfCurve1 = (-4), vcfCurve2 = (-5), tu = 1, doneAction = 2;
+SynthDef(\kickhiSd, { arg out = 0, amp = 0.3, pan = 0, vcaLev1 = 0.5, vcaLev2 = 0.1, vcaLev3 = 0.01, vcaLev4 = 0.01, vcaLev5 = 0, vcaTime1 = 0.01, vcaTime2 = 0.5, vcaTime3 = 1.26, vcaTime4 = 0.1, vcaCurve1 = (-4), vcaCurve2 = (-2), vcaCurve3 = (-4), vcfLev1 = 122, vcfLev2 = 30, vcfLev3 = 33, vcfLev4 = 28, vcfTime1 = 0.05, vcfTime2 = 0.29, vcfTime3 = 1, vcfCurve1 = (-4), vcfCurve2 = (-5), tu = 1, doneAction = 2;
 	var env0, env1, env1m, sig;
 	env0 =  EnvGen.ar(Env.new([vcaLev1, vcaLev2, vcaLev3, vcaLev4, vcaLev5], [vcaTime1, vcaTime2, vcaTime3, vcaTime4], [vcaCurve1, vcaCurve2, vcaCurve3]), doneAction: doneAction);
 	env1 = EnvGen.ar(Env.new([vcfLev1, vcfLev2, vcfLev3, vcfLev4], [vcfTime1, vcfTime2, vcfTime3], [vcfCurve1, vcfCurve2]));
@@ -293,34 +293,34 @@ SynthDef(\kikAwSd, { |out = 0, amp = 0.5, pan = 0, basefreq = 50, ratio = 7, swe
 
 SynthDef(\kickbassSd, { | out = 0, level = 0.5, pan = 0, attack = 0.01, decay = 0.2, release = 0.26, fratio = 1.5, noise = 1, freq1 = 120, freq2 = 30, freq3 = 30, dc = 1, aamp1 = 1, aamp2 = 1, aamp3 = 1, aamp4 = 1, curve1 = (-4), curve2 = (-2), curve3 = (-4), famp1, famp2, famp3, famp4, p1, oamp = 0.1, owhich2 = 0, ochoose = 0, filter = 20000, done = 2 |
 	var env0,env1,
-env1m, son, son2,son3,son4,p2;
+	env1m, son, son2,son3,son4,p2;
 
 	p2 = p1 * (-pi);
-env0 = Env([aamp1,aamp2,aamp3,aamp4,0.1,0],[attack,decay,release],[curve1, curve2, curve3]);
-env1 = Env([freq1,freq2,freq3],[famp1,famp2,famp3,famp4],[curve1, curve2, curve3]);
+	env0 = Env([aamp1,aamp2,aamp3,aamp4,0.1,0],[attack,decay,release],[curve1, curve2, curve3]);
+	env1 = Env([freq1,freq2,freq3],[famp1,famp2,famp3,famp4],[curve1, curve2, curve3]);
 
-env0 = EnvGen.ar(env0,SinOsc.kr(0.025) ,doneAction: done);
+	env0 = EnvGen.ar(env0,SinOsc.kr(0.025) ,doneAction: done);
 	env1 = EnvGen.ar(env1);
-env1m = env1.midicps;
+	env1m = env1.midicps;
 
-son = LFSaw.ar(env1m,0,oamp, 1,1.4);//*LFSaw.ar(100).distort;
-son2 = SinOsc.ar(env1m,0, oamp, 1,1.4);
-son3 = LFPulse.ar(env1m,0, oamp, 1,1.4);
-son4 = LFTri.ar(env1m,0, oamp, 1,1.4);
+	son = LFSaw.ar(env1m,0,oamp, 1,1.4);//*LFSaw.ar(100).distort;
+	son2 = SinOsc.ar(env1m,0, oamp, 1,1.4);
+	son3 = LFPulse.ar(env1m,0, oamp, 1,1.4);
+	son4 = LFTri.ar(env1m,0, oamp, 1,1.4);
 
-son = SelectX.ar(ochoose,[son,son2,son3,son4]);
+	son = SelectX.ar(ochoose,[son,son2,son3,son4]);
 	son = Pan2.ar(son,pan);
-son = LeakDC.ar(son,dc,30);
+	son = LeakDC.ar(son,dc,30);
 
 	son = LPF.ar(son+ WhiteNoise.ar(1*noise), env1m*fratio.max(0.01), env0);
 
 	son = son + SelectX.ar(owhich2,[ SinOsc.ar(env1m, [p1,p2], env0), LFSaw.ar(env1m, [p1,p2], env0), LFPulse.ar(env1m, [p1,p2], env0), LFTri.ar(env1m, [p1,p2], env0)]);
 	son = LPF.ar(son,filter.max(150)+SinOsc.kr(2,0.5,200));
-son = son * 1;
-//son = son.clip2(1);
-son = son * level.distort;
-// son = Pan2.ar(son, pan, level);
-// OffsetOut.ar(out, son).tanh;
+	son = son * 1;
+	//son = son.clip2(1);
+	son = son * level.distort;
+	// son = Pan2.ar(son, pan, level);
+	// OffsetOut.ar(out, son).tanh;
 	OffsetOut.ar(out, DirtPan.ar(son, ~dirt.numChannels, pan, level)).tanh;
 }).add;
 

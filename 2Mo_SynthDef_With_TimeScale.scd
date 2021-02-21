@@ -30,6 +30,111 @@ SynthDef(\snapkickSusSd, { |out = 0, amp = 0.3, pan = 0, bdFrqL1 = 261, bdFrqL2 
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\snapkick_Sd, { |out = 0, amp = 0.3, pan = 0, attack = 0.0001, release = 0.4, sustain = 1, bdFrqL1 = 261, bdFrqL2 = 120, bdFrqL3 = 51, bdFrqT1 = 0.035, bdFrqT2 = 0.08, bdFrqC = (-4), bdAmpAtt = 0.005, bdAmpSus = 0.1, bdAmpRel = 0.3, bdAmpLev = 1, bdAmpCurve = 1, popFrqSt = 750, popFrqEnd = 261, popFrqDur = 0.02, popAmpAtt = 0.001, popAmpSus = 0.02, popAmpRel = 0.001, popAmpLev = 0.15, clkAmpAtt = 0.001, clkAmpRel = 0.01, clkAmpLev = 0.15, clkAmpCurve = (-4), clkfFundFreq = 910, clkfFormFreq = 4760, clkfBwFreq = 2110, clkLpfFreq = 3140, doneAction = 2|
+	var globalEnv, body, bodyFreq, bodyAmp;
+	var pop, popFreq, popAmp;
+	var click, clickAmp;
+	var snd;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release), timeScale: sustain, doneAction: doneAction);
+
+	// body starts midrange, quickly drops down to low freqs, and trails off
+	bodyFreq = EnvGen.ar(Env([bdFrqL1, bdFrqL2, bdFrqL3], [bdFrqT1, bdFrqT2], bdFrqC));
+	bodyAmp = EnvGen.ar(Env.linen(bdAmpAtt, bdAmpSus, bdAmpRel, bdAmpLev, bdAmpCurve));
+	body = SinOsc.ar(bodyFreq) * bodyAmp;
+	// pop sweeps over the midrange
+	popFreq = XLine.kr(popFrqSt, popFrqEnd, popFrqDur);
+	popAmp = EnvGen.ar(Env.linen(popAmpAtt, popAmpSus, popAmpRel, popAmpLev));
+	pop = SinOsc.ar(popFreq) * popAmp;
+	// click is spectrally rich, covering the high-freq range
+	// you can use Formant, FM, noise, whatever
+	clickAmp = EnvGen.ar(Env.perc(clkAmpAtt, clkAmpRel, clkAmpLev, clkAmpCurve));
+	click = LPF.ar(Formant.ar(clkfFundFreq, clkfFormFreq, clkfBwFreq), clkLpfFreq) * clickAmp;
+
+	snd = body + pop + click;
+	snd = snd.tanh * globalEnv;
+
+	// OffsetOut.ar(out, Pan2.ar(snd, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\kickbass_Sd, { | out = 0, level = 0.5, pan = 0, attack = 0.0001, sustain = 1, release = 0.26, atk = 0.01, dcy = 0.2, rls = 0.26, fratio = 1.5, noise = 1, freq1 = 120, freq2 = 30, freq3 = 30, dc = 1, aamp1 = 1, aamp2 = 1, aamp3 = 1, aamp4 = 1, curve1 = (-4), curve2 = (-2), curve3 = (-4), famp1, famp2, famp3, famp4, p1, oamp = 0.1, owhich2 = 0, ochoose = 0, filter = 20000, doneAction = 2 |
+	var env0,env1,
+	env1m, son, son2,son3,son4,p2, globalEnv;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release), timeScale: sustain, doneAction: doneAction);
+	p2 = p1 * (-pi);
+	env0 = Env([aamp1,aamp2,aamp3,aamp4,0.1,0],[atk,dcy,rls],[curve1, curve2, curve3]);
+	env1 = Env([freq1,freq2,freq3],[famp1,famp2,famp3,famp4],[curve1, curve2, curve3]);
+
+	env0 = EnvGen.ar(env0,SinOsc.kr(0.025));
+	env1 = EnvGen.ar(env1);
+	env1m = env1.midicps;
+
+	son = LFSaw.ar(env1m,0,oamp, 1,1.4);//*LFSaw.ar(100).distort;
+	son2 = SinOsc.ar(env1m,0, oamp, 1,1.4);
+	son3 = LFPulse.ar(env1m,0, oamp, 1,1.4);
+	son4 = LFTri.ar(env1m,0, oamp, 1,1.4);
+
+	son = SelectX.ar(ochoose,[son,son2,son3,son4]);
+	son = Pan2.ar(son,pan);
+	son = LeakDC.ar(son,dc,30);
+
+	son = LPF.ar(son+ WhiteNoise.ar(1*noise), env1m*fratio.max(0.01), env0);
+
+	son = son + SelectX.ar(owhich2,[ SinOsc.ar(env1m, [p1,p2], env0), LFSaw.ar(env1m, [p1,p2], env0), LFPulse.ar(env1m, [p1,p2], env0), LFTri.ar(env1m, [p1,p2], env0)]);
+	son = LPF.ar(son,filter.max(150)+SinOsc.kr(2,0.5,200));
+	son = son * 1;
+	//son = son.clip2(1);
+	son = son * level.distort;
+	// son = Pan2.ar(son, pan, level);
+	// OffsetOut.ar(out, son).tanh;
+	OffsetOut.ar(out, DirtPan.ar(son, ~dirt.numChannels, pan, level * globalEnv)).tanh;
+}).add;
+
+SynthDef(\kicklaserbeam_Sd, { arg out = 0, amp = 0.3, pan = 0.0, attack = 0.0001, sustain = 1, release = 0.26, freq = 13007, freqenvL1 = 3.97, freqenvL2 = 5, freqenvL3 = 0, freqenvL4 = 2.97, freqenvT1 = 0.16, freqenvT2= 0.07, freqenvT3= 0.26, ampenvL1 = 1, ampenvL2 = 1, ampenvL3 = 0, ampenvL4 = 0, ampenvT1 = 0.02, ampenvT2 = 0.2, ampenvT3 = 0.1, hpfFreq = 50, hpfRq = 1, clickAtk = 0, clickRls = 0.1, clickSus = 1, clickLevScale = 10, clickEnvPow = 1, clickEnvNoiseAmp = 0.4, clickEnvInv = 0, clickFreq = 820, clickAmp = 0.3, doneAction = 2;
+	var snd, freqenv, ampenv, globalEnv, clickEnv;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release), timeScale: sustain, doneAction: doneAction);
+	// frequency envelope
+	freqenv = EnvGen.ar(Env([freqenvL1, freqenvL2, freqenvL3, freqenvL4], [freqenvT1, freqenvT2, freqenvT3]));
+	// amplitude envelope
+	// no gate: fixed-time envelope, self-terminating.
+	ampenv = EnvGen.ar(Env([ampenvL1, ampenvL2, ampenvL3, ampenvL4], [ampenvT1, ampenvT2, ampenvT3].normalizeSum));
+	snd = LFTri.ar(freq * freqenv, 0, ampenv);
+	snd = BHiPass4.ar(snd, hpfFreq, hpfRq);
+
+	clickEnv = EnvGen.ar(Env.perc(clickAtk, clickRls), levelScale: clickLevScale, timeScale: clickSus).pow(clickEnvPow) * PinkNoise.ar(clickEnvNoiseAmp).range(0.1, 1).lag(0.02);
+
+	clickEnv = Select.ar(clickEnvInv, [clickEnv, clickEnv.neg]);
+
+	snd = snd + HPF.ar(clickEnv, clickFreq, clickAmp);
+	// OffsetOut.ar(out, Pan2.ar(snd, pan));
+	OffsetOut.ar(out, DirtPan.ar(snd * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+~synthSd = SynthDef(\tweetBassLeak_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0, release = 1.2, sustain = 1, curve = 1, globalEnvPow = 1, globalEnvNoise = 0.1, globalEnvInv = 0, atk = 0.01, dcy = 0.4, frqStart = 2, frqEnd = 2, frqTime = 0, sawPow = 1.5, brfFreq1 = 45.1, brfFreq2 = 45, rq = 0.1, t_gate = 1, doneAction = 2;
+	var sig, env, globalEnv, trig;
+
+	globalEnv = EnvGen.ar(Env.perc(attack, release, curve), t_gate, timeScale: sustain, doneAction: doneAction).pow(globalEnvPow);
+	globalEnv = globalEnv * PinkNoise.ar(globalEnvNoise).range(0.1, 1).lag(0.02);
+
+	globalEnv = Select.ar(globalEnvInv, [globalEnv, globalEnv.neg]);
+
+	env = Decay2.ar(
+		Trig.ar(t_gate, sustain),
+		atk,
+		dcy
+	);
+
+	sig = Saw.ar(XLine.ar(frqStart, frqEnd, frqTime), env) ** sawPow;
+	sig = BRF.ar(sig, 20 + [brfFreq1, brfFreq2], rq);
+	sig = sig * globalEnv;
+	sig = LeakDC.ar(sig).tanh;
+	// OffsetOut.ar(out, sig * amp);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
 SynthDef(\IkedaBassSusSd, { arg out = 0, amp = 1, pan = 0, envL1 = 0.2, envL2 = 0.5, envL3 = 0.4, envL4 = 0, envT1 = 0, envT2 = 0.2, envT3 = 0.01, sustain = 1, envCurve = (-5), freq = 0, sweep1 = 52.8, sweep2 = 740, vol1 = 2, vol2 = 0.05, gate = 1, doneAction = 2;
 	var env, sin, sig;
 	env = EnvGen.ar(Env([envL1, envL2, envL3, envL4], [envT1, envT2, envT3], envCurve), gate, timeScale: sustain, doneAction: doneAction);
@@ -493,7 +598,7 @@ SynthDef(\hat808SusSd, { arg out = 0, amp = 0.1, pan = 0, tu = 1, atk = 0.01, rl
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-~synthSd = SynthDef(\sosHatsSusSd, { arg out = 0, amp = 0.8, pan = 0, frq = 6000, curve = -4, rootIndex = 238.5, rq = 1,
+SynthDef(\sosHatsSusSd, { arg out = 0, amp = 0.8, pan = 0, frq = 6000, curve = -4, rootIndex = 238.5, rq = 1,
 	// Initial envelopes
 	initAtt = 0.005, initRel = 0.1, initAmp = 1, initStart = 15000, initEnd = 9000,
 	// Body envelopes
