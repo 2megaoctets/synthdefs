@@ -635,7 +635,7 @@ SynthDef(\ringkickSd, { arg out = 0, amp = 0.2, pan = 0, atk = 0.01, dcy = 2.63,
 	var snd, env, trig, envf, mod;
 	mod = LFNoise2.kr(lfnFrq, lfnAmt).range(1, lfnAmt);
 	env = EnvGen.kr(Env.linen(atk, 1, dcy), doneAction: doneAction);
-	envf = EnvGen.kr(Env([envfL1, envfL2, envfL3, envfL4, envfL5], [envfT1, envfT2, envfT3, envfT4], [curve, curve/2, curve]), levelScale: envfAmt * mod, doneAction: doneAction);
+	envf = EnvGen.kr(Env([envfL1, envfL2, envfL3, envfL4, envfL5], [envfT1, envfT2, envfT3, envfT4], [curve, curve/2, curve]), levelScale: envfAmt * mod);
 	trig = Impulse.ar(0);
 	snd = Ringz.ar(
 		in: LPF.ar(
@@ -660,7 +660,7 @@ SynthDef(\kickRingzSd, { arg out = 0, amp = 1, pan = 0, envL1 = 0.1, envL2 = 1.2
 	var snd, env, envp;
 
 	env = EnvGen.kr(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4], [curve, curve/2, curve]), doneAction: doneAction);
-	envp = EnvGen.kr(Env([envpL1, envpL2, envpL3, envpL4], [envpT1, envpT2, envpT3], [curvep, curvep*1.25, curvep].midicps), doneAction: doneAction);
+	envp = EnvGen.kr(Env([envpL1, envpL2, envpL3, envpL4], [envpT1, envpT2, envpT3], [curvep, curvep*1.25, curvep].midicps));
 	snd = Ringz.ar(
 		    in: LPF.ar(in: Impulse.ar(0), freq: ffreq),
 		    freq: freq * envp,
@@ -2624,10 +2624,10 @@ SynthDef(\LiljedRain_Sd, { arg out = 0, amp = 0.6, pan = 0, attack = 0.01, relea
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-/*SynthDef(\danScar_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 1.2, sustain = 1.5, curve = 4, sinFreq = 30, noiseFreq = 1, lpfFreq = 15000, doneAction = 2;
+/*SynthDef(\danScarSd, { arg out = 0, amp = 0.1, pan = 0, envL1 = 0, envL2 = 0.3, envL3 = 1, envL4 = 0, envT1 = 0.01, envT2 = 1, envT3 = 4, sustain = 1.5, curve = 4, sinFreq = 30, noiseFreq = 1, lpfFreq = 15000, doneAction = 2;
     var sig, globalEnv, inSig, lfo;
 
-    globalEnv = EnvGen.kr(Env.perc(attack, release, curve: curve), timeScale: sustain, doneAction: doneAction);
+	globalEnv = EnvGen.kr(Env([envL1, envL2, envL3, envL4], [envT1, envT2, envT3].normalizeSum * sustain, curve), doneAction: doneAction);
 
     inSig = SinOsc.ar(sinFreq + [0, 0.1]);
     lfo = LFDNoise1.kr(noiseFreq).linexp(-1, 1, 0.5, 1);
@@ -2643,13 +2643,13 @@ SynthDef(\LiljedRain_Sd, { arg out = 0, amp = 0.6, pan = 0, attack = 0.01, relea
     // sig = Pan2.ar(sig, pan);
 
     // OffsetOut.ar(out, sig * globalEnv);
-	OffsetOut.ar(out * globalEnv, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\danScar1_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 1.2, sustain = 1.5, curve = 4, sinFreq = 30, noiseFreq = 1, lpfFreq = 15000, doneAction = 2;
+SynthDef(\danScar1Sd, { arg out = 0, amp = 0.1, pan = 0, envL1 = 0, envL2 = 0.3, envL3 = 1, envL4 = 0, envT1 = 0.01, envT2 = 1, envT3 = 4, sustain = 1.5, curve = 4, sinFreq = 30, noiseFreq = 1, lpfFreq = 15000, doneAction = 2;
     var sig, globalEnv, inSig, lfo;
 
-    globalEnv = EnvGen.kr(Env.perc(attack, release, curve: curve), timeScale: sustain, doneAction: doneAction);
+    globalEnv = EnvGen.kr(Env([envL1, envL2, envL3, envL4], [envT1, envT2, envT3].normalizeSum * sustain, curve), doneAction: doneAction);
 
     inSig = SinOsc.ar(sinFreq + [0, 0.1]);
     lfo = LFDNoise1.ar(noiseFreq).linexp(-1, 1, 0.5, 1);
@@ -2667,13 +2667,13 @@ SynthDef(\danScar1_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 
     // sig = Pan2.ar(sig, pan);
 
     // OffsetOut.ar(out, sig * globalEnv);
-	OffsetOut.ar(out * globalEnv, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\danScar2_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 1.2, sustain = 1.5, curve = 4, triFreq = 60, noiseFreq = 0.5, doneAction = 2;
+SynthDef(\danScar2Sd, { arg out = 0, amp = 0.1, pan = 0, envL1 = 0, envL2 = 0.3, envL3 = 1, envL4 = 0, envT1 = 0.1, envT2 = 1, envT3 = 4, sustain = 1.5, curve = 4, triFreq = 60, noiseFreq = 0.5, doneAction = 2;
     var sig, globalEnv, inSig, lfo;
 
-    globalEnv = EnvGen.kr(Env.perc(attack, release, curve: curve), timeScale: sustain, doneAction: doneAction);
+    globalEnv = EnvGen.kr(Env([envL1, envL2, envL3, envL4], [envT1, envT2, envT3].normalizeSum * sustain, curve), doneAction: doneAction);
 
     inSig = LFTri.ar(triFreq);
     lfo = { LFDNoise3.ar(0.5).linexp(-1, 1, 0.1, 150) } ! 2;
@@ -2686,13 +2686,13 @@ SynthDef(\danScar2_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 
     ) /** amp*/;
 
     // OffsetOut.ar(out, sig * globalEnv);
-	OffsetOut.ar(out * globalEnv, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;*/
 
-SynthDef(\natwich_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0, release = 1.2, sustain = 1.5, curve = 4, modFreq = 0.4, modAmount = 0.8, sawFreq = 2100, rlpfFreq = 4000, rlpfRq = 0.1, doneAction = 2;
+SynthDef(\natwichSd, { arg out = 0, amp = 0.3, pan = 0, envL1 = 0, envL2 = 0.3, envL3 = 1, envL4 = 0.5, envL5 = 0, envT1 = 0.01, envT2 = 1, envT3 = 4, envT4 = 0.1, sustain = 1.5, curve = 4, modFreq = 0.4, modAmount = 0.8, sawFreq = 2100, rlpfFreq = 4000, rlpfRq = 0.1, doneAction = 2;
     var snd, fb, sig, globalEnv, mod1, mod2;
 
-    globalEnv = EnvGen.kr(Env.perc(attack, release, curve: curve), timeScale: sustain, doneAction: doneAction);
+    globalEnv = EnvGen.kr(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4].normalizeSum * sustain, curve), doneAction: doneAction);
 
     mod1 = LFDNoise3.kr(modFreq, modAmount).range(0.1, 1.5);
     mod2 = LFDNoise0.kr(modFreq, modAmount).range(0.1, 1.5);
@@ -2709,7 +2709,7 @@ SynthDef(\natwich_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0, release = 1
     snd = snd + (NHHall.ar(snd, 3) * -10.dbamp);
 
     // OffsetOut.ar(out, snd);
-	OffsetOut.ar(out * globalEnv, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Tonal
@@ -3341,10 +3341,10 @@ SynthDef(\chdegaulleaboutSd, { arg out = 0, amp = 1, pan = 0, freq = 0.01, attac
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\t2001Sd, { arg out = 0, amp = 1, pan = 0, gate = 1, attack = 0.01, release = 10, doneAction = 2;
+SynthDef(\t2001Sd, { arg out = 0, amp = 1, pan = 0, gate = 1, attack = 0.01, release = 0.8, sustain = 1, doneAction = 2;
 	var sig, env;
-	//env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, doneAction: doneAction);
-	env = Linen.kr(gate, attack, 1, release, doneAction);
+	env = EnvGen.kr(Env.perc(attack, release), timeScale: sustain, doneAction: doneAction);
+	// env = Linen.kr(gate, attack, sustain, release, doneAction);
 	sig = PinkNoise.ar(1);
 	20.do{
 		sig = BBandStop.ar(sig, LFNoise1.kr(0.05.rand).exprange(40,15000), exprand(0.1,2));
@@ -3447,7 +3447,7 @@ SynthDef(\elifmSd, { arg out = 0, freq = 500, mRatio = 1, cRatio = 1, index = 1,
 	OffsetOut.ar(out, DirtPan.ar(car, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\polishFabSd, { arg out = 0, amp = 0.2, pan = 0, attack = 11, release = 6, feedBack = 2, phmodFrq = 0.5, freq1 = 64, freq2 = 23, envfL1 = 0, envfL2 = 500, envfL3 = 20, envfL4 = 0, envfT1 = 0.2, envfT2 = 0.01, envfT3 = 0.12, envfCure = (-4), frqScale = 0.5, gate = 1, doneAction = 2;
+SynthDef(\polishFabSd, { arg out = 0, amp = 0.3, pan = 0, attack = 11, release = 6, feedBack = 2, phmodFrq = 0.5, freq1 = 64, freq2 = 23, envfL1 = 0, envfL2 = 500, envfL3 = 20, envfL4 = 0, envfT1 = 0.2, envfT2 = 0.01, envfT3 = 0.12, envfCure = (-4), frqScale = 0.5, gate = 1, doneAction = 2;
 	var sig, env, envf, num, input;
 	num = 8;
 	input = LocalIn.ar(2) * feedBack;
@@ -3987,6 +3987,23 @@ SynthDef(\windowsyncSd, { |out = 0, pan = 0, frq = 65.40639132515, amp = 0.1,
     var sig = SinOsc.ar(0, syncPhase * 2pi) * fundamental;
     // OffsetOut.ar(out, (sig * (amp * eg)).dup);
 	OffsetOut.ar(out, DirtPan.ar(sig * (amp * eg), ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\danUkSd, { arg out = 0, amp = 0.3, pan = 0, attack = 0, release = 1.3, sustain = 1, curve = (-4), envPow = 1, globalEnvNoise = 0.3, globalEnvInv = 0, sawFreq = 50, r = 12, doneAction = 2;
+	var phi, x, y, sig, globalEnv, envShape;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+	globalEnv = globalEnv * PinkNoise.ar(globalEnvNoise).range([0.1, 0.12], [1, 1.02]).lag(0.02);
+
+	globalEnv = Select.ar(globalEnvInv.wrap(0, 1).round, [globalEnv, globalEnv.neg]);
+
+    phi = LFSaw.ar([sawFreq, sawFreq + 0.1], -1).range(0, 2pi);
+    x = r * cos(phi);
+    y = r * sin(phi);
+    sig = sin(x) - (sin(y) * log(x * x + 1)) / 10;
+    sig = Limiter.ar(sig * globalEnv, 0.2);
+	// OffsetOut.ar(out, sig * amp);
+	OffsetOut.ar(out, DirtPan.ar(sig * amp, ~dirt.numChannels, pan));
 }).add;
 
 ///////////////////////////////////////  Sequence
