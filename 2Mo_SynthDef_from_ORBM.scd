@@ -4739,4 +4739,14 @@ SynthDef(\corman1Sd, { arg out = 0, amp = 1, pan = 0, attack = 1, release = 10, 
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\raisonne,{ arg out = 0, amp = 1, pan = 0, atk = 0, dcy = 8, stn = 1, rls = 4, sustain = 1, frq = 40, bwr = 0.001, doneAction = 2;
+	var sig, n, env;
+    env = EnvGen.kr(Env.adsr(atk, dcy, stn, rls), timeScale: sustain, doneAction: doneAction);
+	n = 50;
+	sig = Mix.fill(n, {|i| Resonz.ar(Dust2.ar(5), frq * (i + 1), bwr, 300)}) * n.reciprocal; // scale to ensure no clipping
+	sig = Pan2.ar(sig, pan, amp) * env;
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
 )
