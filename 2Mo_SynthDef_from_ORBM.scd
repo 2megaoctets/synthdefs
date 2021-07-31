@@ -2766,6 +2766,61 @@ SynthDef(\pnoiseSd, {
     OffsetOut.ar(out, DirtPan.ar(grey, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\ulysse42Sd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.001, rls = 0.2, sustain = 1, mod1 = 0.2, mod2 = 0.71, doneAction = 2;
+    var sig, sig1, sig2, sig3, z1, z2, sinFrq, env;
+
+    env = EnvGen.kr(Env.asr(atk, 1, rls), timeScale: sustain, doneAction: doneAction);
+
+    mod1 = mod1.linlin(0, 1, -10, 10);
+    sig1 = LFSaw.kr(0.062).range(-10, 10);
+    sig1 = sig1 + (mod2.linlin(0, 1, 0, 5) * (0..8));
+    sig2 = sig1.frac;
+    sig3 = 0.8 - sig2.moddif(0.5, 1);
+
+    z1 = gcd(sig1, mod1) + sig2;
+    z2 = lcm(sig1, mod1) + sig2;
+    sinFrq = 120 * ([z1, z2].flop.abs + 1);
+
+    sig = (SinOsc.ar(sinFrq) * AmpComp.kr(sinFrq) * sig3).mean;
+    // sig = Pan2.ar(sig * env, pan, amp);
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\gcdDmFbGeneSd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.001, rls = 0.2, sustain = 1, ser1_1 = 0, ser1_2 = 1, ser1_3 = 2, ser1_4 = 3, ser1Size = 4, ser2_1 = 4, ser2_2 = 3, ser2_3 = 2, ser2_4 = 1, ser2_5 = 0, ser2Size = 5, add1 = 50, add2 = 50.1, modul = 50, sinFmin = 70, divisor = 10, sigSel = 0, fbSel = 0, doneAction = 2;
+    var seq1, seq2, src1, src2, count1, count2, in, sinFrq, sig, sig1, sig2, sig3, sig4, sig5, fb, env;
+
+    env = EnvGen.kr(Env.asr(atk, 1, rls), timeScale: sustain, doneAction: doneAction);
+
+    seq1 = Dseq([Dser([ser1_1, ser1_2, ser1_3, ser1_4], ser1Size.max(1))], inf);
+    seq2 = Dseq([Dser([ser2_1, ser2_2, ser2_3, ser2_4, ser2_5], ser2Size.max(1))], inf);
+
+    src1 = TDuty.ar(seq1 + add1 * SampleDur.ir);
+    src2 = TDuty.ar(seq2 + add2 * SampleDur.ir);
+
+    count1 = PulseCount.ar(src1) % modul;
+    count2 = PulseCount.ar(src2) % modul;
+
+    in = LocalIn.ar(2);
+    sig1 = gcd(count1, count2 + [0, 1]);
+    sinFrq = sig1.linexp(0, modul, sinFmin, 10000);
+    sig2 = SinOsc.ar(sinFrq, 0, in / 2);
+    sig3 = SinOsc.ar(sinFrq * (in / divisor + 1));
+    sig4 = SinOsc.ar(sinFrq);
+    sig5 = SinOsc.ar(sinFrq) + BPF.ar(in * 0.95, LFDNoise3.ar(0.2).range(100, 10000));
+
+    sigSel = sigSel.min(3).max(0);
+	sig = Select.ar(sigSel.mod(4), [sig2, sig3, sig4, sig5]);
+
+    fbSel = fbSel.min(3).max(0);
+	fb = Select.ar(fbSel.mod(4), [sinFrq.reverse, in.reverse, sig * in, sig]);
+    LocalOut.ar(fb);
+
+    sig = Limiter.ar(LPF.ar(HPF.ar(sig, 20), 10000), 0.3) * env;
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Tonal
 
 SynthDef(\cowSd, { arg out=0, amp=0.5, pan=0, att = 0.001, rel=1, tu=1, gate=1, doneAction=2;
