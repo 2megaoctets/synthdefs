@@ -866,6 +866,20 @@ SynthDef(\technokickSd, {
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, env * amp));
 }).add;
 
+SynthDef(\expodecPHSd, { |out, amp = 0.3, pan = 0, lev = 1, waveSel = 1, freqLow = 50, phaseLow = 3.14, ampLow = 0.3, freq = #[70, 90], click = 0, sustain = 0.9|
+	var body, snd, env;
+
+	env = XLine.ar(amp, amp * 0.001, sustain, doneAction: 2) * (AmpComp.ir(freq) * 0.5);
+
+	body = Select.kr(waveSel.mod(5), [SinOsc, VarSaw, LFTri, LFPar, LFPulse].collect(_.ar(freqLow, phaseLow) * ampLow));
+
+    snd = FSinOsc.ar(freq, click * 0.5pi);
+	snd = Mix.ar(snd + body);
+
+    // OffsetOut.ar(out, Pan2.ar(snd * env, pan));
+	OffsetOut.ar(out, DirtPan.ar(snd * env, ~dirt.numChannels, pan, lev));
+}).add;
+
 ///////////////////////////////////////  Snare
 
 SynthDef(\sdSd, { | out = 0, amp = 1, pan = 0, att = 0, rel = 0.05, freq = 200, ffreq = 12000 |
@@ -2819,6 +2833,41 @@ SynthDef(\gcdDmFbGeneSd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.001, rls = 0
     sig = Limiter.ar(LPF.ar(HPF.ar(sig, 20), 10000), 0.3) * env;
     // OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\addiditiveSinSd, { arg out = 0, amp = 0.9, pan = 0, atk = 0.0001, stn = 1, rls = 0.4, crv = (-4), envPow = 1, sampleRate = 44100, doneAction = 2;
+	var sig, env, buffAmp, numPartials = 50;
+
+	env = EnvGen.ar(Env.asr(atk, stn, rls, crv), doneAction: doneAction).pow(envPow);
+
+	buffAmp = LocalBuf(numPartials);
+
+	BufWr.ar(
+		LFGauss.ar(
+			duration: sampleRate.reciprocal * numPartials / \factor.kr(1, 0.5),
+			width: \width.kr(0.2, 0.5),
+			iphase: \phase.kr(0, 0.5).mod(4)
+		),
+		bufnum: buffAmp,
+		phase: Phasor.ar(
+			end: numPartials
+		)
+	);
+
+	sig = Mix.fill(numPartials, {
+		arg i;
+		SinOsc.ar(
+			//Odd harmonics
+			freq: ((i * 2) + 1) * \fund.kr(120, 0.5),
+			//The i-th value of ~buffer_amplitudes is read with an Index Ugen
+			mul: Index.ar(buffAmp, i)
+		) / numPartials
+	});
+
+	/*sig = Pan2.ar(sig * env, pan, amp);
+
+	OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Tonal
@@ -4945,6 +4994,26 @@ SynthDef(\raisonne,{ arg out = 0, amp = 1, pan = 0, atk = 0, dcy = 8, stn = 1, r
 	sig = Pan2.ar(sig, pan, amp) * env;
     // OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\bigraphSd, { arg out = 0, amp = 0.2, pan = 0, atk = 0.0001, dcy = 0.1, stn = 1, rls = 2, sustain = 1, crv = (-12), envPow = 1, trig1Freq = 0, trig2Freq = 0, modulo1 = 128, modulo2Freq = 3, modulo2Mul = 9, modulo2Offset = 99, noteOffset = 33, srcFreq = 9, modPhaseMul = 3.1415926535898, doneAction = 2;
+    var sig, modPhase, env, trig1, trig2;
+    env = EnvGen.kr(Env.adsr(atk, dcy, stn, rls, curve: crv), timeScale: sustain, doneAction: doneAction).pow(envPow);
+    trig1 = Impulse.kr(trig1Freq);
+    trig2 = Impulse.kr(trig2Freq);
+    modPhase = SinOsc.ar(
+        midicps(
+            (
+                Sweep.ar(trig1, (33..3)) % modulo1 & (Sweep.ar(trig2, (3..9)) % (LFSaw.ar(modulo2Freq) * modulo2Mul + modulo2Offset))
+            ) + noteOffset
+        ),
+        0,
+        modPhaseMul
+    );
+    sig = (SinOsc.ar(srcFreq, modPhase) / 3) * env;
+    // sig = Pan2.ar(Splay.ar(sig), pan, amp);
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(Splay.ar(sig), ~dirt.numChannels, pan, amp));
 }).add;
 
 )
