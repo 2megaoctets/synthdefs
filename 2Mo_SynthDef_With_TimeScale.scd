@@ -722,7 +722,7 @@ son = son * level.distort;
 	OffsetOut.ar(out, DirtPan.ar(son, ~dirt.numChannels, pan, level)).tanh;
 }).add;
 
-SynthDef(\batuhan_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1.5, sustain = 1, curve = (-4), envPow = 1, eSawDec = 0.6, eSinL1 = 0, eSinL2 = 1, eSinL3 = 0, eSinL4 = 0.32, eSinT1 = 0.24, eSinT2 = 0.02, eSinT3 = 0.12, eSinC1 = (-4), eSinC2 = (-4), eSinC3 = (-4), sinFreq = 33, sawMix = 1, sawFreq = 8, bpfFreq = 162, bpfRq = 1, bpfMix = 0, brfFreq1 = 45.1, brfFreq2 = 45, brfRq = 1, doneAction = 2;
+~synthSd = SynthDef(\batuhan_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1.5, sustain = 1, curve = (-4), envPow = 1, eSawDec = 0.6, eSinL1 = 0, eSinL2 = 1, eSinL3 = 0, eSinL4 = 0.32, eSinT1 = 0.24, eSinT2 = 0.02, eSinT3 = 0.12, eSinC1 = (-4), eSinC2 = (-4), eSinC3 = (-4), sinFreq = 33, sawMix = 1, sawFreq = 8, bpfFreq = 162, bpfRq = 1, bpfMix = 0, brfFreq1 = 45.1, brfFreq2 = 45, brfRq = 1, doneAction = 2;
 	var sig, trig, envSaw, envSin, globalEnv;
 
 	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
@@ -1088,7 +1088,7 @@ SynthDef(\sosHatsSusSd, { arg out = 0, amp = 0.8, pan = 0, frq = 6000, curve = -
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
 }).add;
 
-~synthSd = SynthDef(\sosHats_Sd, { arg out = 0, amp = 0.8, pan = 0, attack = 0, release = 1.2, sustain = 1, curve = (-4), envPow = 1, frq = 6000, crv = (-4), rootIndex = 238.5, rq = 1,
+SynthDef(\sosHats_Sd, { arg out = 0, amp = 0.8, pan = 0, attack = 0, release = 1.2, sustain = 1, curve = (-4), envPow = 1, frq = 6000, crv = (-4), rootIndex = 238.5, rq = 1,
 	// Initial envelopes
 	initAtt = 0.005, initRel = 0.1, initAmp = 1, initStart = 15000, initEnd = 9000,
 	// Body envelopes
