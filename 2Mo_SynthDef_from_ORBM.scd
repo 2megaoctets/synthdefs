@@ -4704,6 +4704,50 @@ SynthDef(\bassSatSd, { arg out = 0, amp = 0.1, pan = 0, atk = 0, sus = 1, rls = 
 	OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\turfuBass, { arg out = 0, amp = 0.25, pan = 0, index=1, iScale=5, doneAction = 2;
+    var trig = \trig.tr(1);
+    var trigMod = LFNoise0.ar(8).round;
+    var sig, gainEnv, iEnv, mod;
+    var low, mid, high;
+    var lowFreq, highFreq, phase, waveform, shaped;
+
+    iEnv = EnvGen.ar(Env([0, index, index * iScale, index], [0.0001, 5, 1], \lin), trig);
+    gainEnv = EnvGen.ar(Env([0, 1, 1, 0], [0, \atk.kr(0.2), \rls.kr(0.01)], \curve.kr(-5)), (trig * trigMod).abs, doneAction: doneAction);
+    mod = Sweep.ar(trig * trigMod, [51.913, 726.783]);
+
+    phase = Phasor.ar(Impulse.ar(0), 51.913 / SampleRate.ir, 0, 1);
+    waveform = (((phase % 0.5 * 2pi).sin * (2 * (phase % 0.5 < 0.25) - 1)) + (2 * (phase % 0.5 >= 0.25))) + (2 * (phase >= 0.5));
+    sig = waveform + (((mod * 2pi) + (pi/3)).wrap(-pi, pi) * iEnv);
+	sig = (Fold.ar(sig) * [2, 0.05]).mean;
+
+
+    lowFreq = 207.652;
+    highFreq = 1038.26;
+    low = LPF.ar(LPF.ar(sig, lowFreq), lowFreq);
+    sig = sig - low;
+    mid = LPF.ar(LPF.ar(sig, highFreq), highFreq);
+    high = sig - mid;
+
+    // lows
+    low = low + PitchShift.ar(low, 0.2, 2);
+    k = 2 * \amount.kr(0.2) / (1 - \amount.kr(0.2));
+    shaped = (1 + k) * low / (1 + (k * low.abs));
+    low = XFade2.ar(low, shaped, 1);
+
+    // highs
+    high = (high * \boost.kr(3).dbamp).tanh;
+
+    sig = low + mid + high;
+
+    sig = sig * gainEnv * amp;
+
+    sig = MidEQ.ar(sig, 13289.75, 0.7, 8);
+    sig = LeakDC.ar(sig);
+	/*sig = Pan2.ar(Limiter.ar(sig), pan);
+    OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(Limiter.ar(sig), ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  Generative
 
 SynthDef(\nvirgoSd, { arg out = 0, amp = 1, pan = 0, att = 0.01, rel = 20, feedBack = 7.5, sawFreq1 = 32, sawFreq2 = 33, sawAmp = 0.2, bpff = 2, bpffModSpeed = 1.33, bpffModAmt = 4, delayTime = 2, decayTime = 40, doneAction = 2;

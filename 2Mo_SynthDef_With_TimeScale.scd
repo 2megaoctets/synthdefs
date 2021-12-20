@@ -2364,6 +2364,51 @@ SynthDef(\bassSat_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 1
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\turfuBass, { arg out = 0, amp = 0.25, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, index=1, iScale=5, doneAction = 2;
+    var trig = \trig.tr(1);
+    var trigMod = LFNoise0.ar(8).round;
+    var sig, gainEnv, iEnv, mod;
+    var low, mid, high;
+    var lowFreq, highFreq, phase, waveform, shaped;
+
+    iEnv = EnvGen.ar(Env([0, index, index * iScale, index], [0.0001, 5, 1], \lin), trig);
+	gainEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), (trig * trigMod).abs, timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    mod = Sweep.ar(trig * trigMod, [51.913, 726.783]);
+
+    phase = Phasor.ar(Impulse.ar(0), 51.913 / SampleRate.ir, 0, 1);
+    waveform = (((phase % 0.5 * 2pi).sin * (2 * (phase % 0.5 < 0.25) - 1)) + (2 * (phase % 0.5 >= 0.25))) + (2 * (phase >= 0.5));
+    sig = waveform + (((mod * 2pi) + (pi/3)).wrap(-pi, pi) * iEnv);
+	sig = (Fold.ar(sig) * [2, 0.05]).mean;
+
+
+    lowFreq = 207.652;
+    highFreq = 1038.26;
+    low = LPF.ar(LPF.ar(sig, lowFreq), lowFreq);
+    sig = sig - low;
+    mid = LPF.ar(LPF.ar(sig, highFreq), highFreq);
+    high = sig - mid;
+
+    // lows
+    low = low + PitchShift.ar(low, 0.2, 2);
+    k = 2 * \amount.kr(0.2) / (1 - \amount.kr(0.2));
+    shaped = (1 + k) * low / (1 + (k * low.abs));
+    low = XFade2.ar(low, shaped, 1);
+
+    // highs
+    high = (high * \boost.kr(3).dbamp).tanh;
+
+    sig = low + mid + high;
+
+    sig = sig * gainEnv * amp;
+
+    sig = MidEQ.ar(sig, 13289.75, 0.7, 8);
+    sig = LeakDC.ar(sig);
+	/*sig = Pan2.ar(Limiter.ar(sig), pan);
+    OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(Limiter.ar(sig), ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  Snare
 
 SynthDef(\snaremedSusSd, { | out = 0, level = 1, pan = 0, noise = 1, dc = 1, env0L1 = 1, env0L2 = 1, env0L3 = 1, env0L4 = 1, atkEnv0 = 0.01, decEnv0 = 0.2, relEnv0 = 0.26, fratio = 1.5, env1L1 = 120, env1L2 = 30, env1L3 = 30, env1T1 = 0.1, env1T2 = 0.2, curve1 = (-4), curve2 = (-2), curve3 = (-4), phase = 0, oamp = 0.1, owhich2 = 0, ochoose = 0, sustain = 1, doneAction = 2|
