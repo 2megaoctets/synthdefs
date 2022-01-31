@@ -722,7 +722,7 @@ son = son * level.distort;
 	OffsetOut.ar(out, DirtPan.ar(son, ~dirt.numChannels, pan, level)).tanh;
 }).add;
 
-~synthSd = SynthDef(\batuhan_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1.5, sustain = 1, curve = (-4), envPow = 1, eSawDec = 0.6, eSinL1 = 0, eSinL2 = 1, eSinL3 = 0, eSinL4 = 0.32, eSinT1 = 0.24, eSinT2 = 0.02, eSinT3 = 0.12, eSinC1 = (-4), eSinC2 = (-4), eSinC3 = (-4), sinFreq = 33, sawMix = 1, sawFreq = 8, bpfFreq = 162, bpfRq = 1, bpfMix = 0, brfFreq1 = 45.1, brfFreq2 = 45, brfRq = 1, doneAction = 2;
+SynthDef(\batuhan_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1.5, sustain = 1, curve = (-4), envPow = 1, eSawDec = 0.6, eSinL1 = 0, eSinL2 = 1, eSinL3 = 0, eSinL4 = 0.32, eSinT1 = 0.24, eSinT2 = 0.02, eSinT3 = 0.12, eSinC1 = (-4), eSinC2 = (-4), eSinC3 = (-4), sinFreq = 33, sawMix = 1, sawFreq = 8, bpfFreq = 162, bpfRq = 1, bpfMix = 0, brfFreq1 = 45.1, brfFreq2 = 45, brfRq = 1, doneAction = 2;
 	var sig, trig, envSaw, envSin, globalEnv;
 
 	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
@@ -1363,6 +1363,17 @@ SynthDef(\clapy_Sd, { arg out = 0, amp = 0.5, pan = 0, attack = 0.01, release = 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\clapthan_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1, sustain = 1, curve = (-4), envPow = 1, envL1 = 0, envL2 = 1, envL3 = 0.5, envL4 = 1, envL5 = 0.5, envL6 = 1, envL7 = 0, envT1 = 0.001, envT2 = 0.01, envT3 = 0.001, envT4 = 0.01, envT5 = 0.001, envT6 = 0.01, crv = 0, hpfFrq = 1024, hpfRq = 0.3, doneAction = 2;
+    var snd, env, globalEnv;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+	env = EnvGen.ar(Env([envL1, envL2, envL3, envL4, envL5, envL6, envL7], [envT1, envT2, envT3, envT4, envT5, envT6], crv));
+    snd = RHPF.ar(Hasher.ar(Sweep.ar), hpfFrq, hpfRq);
+    snd = snd * env;
+	/*snd = Pan2.ar(snd, pan, amp);
+    OffsetOut.ar(out, snd);*/
+	OffsetOut.ar(out, DirtPan.ar(snd * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Noise
 
 SynthDef(\tweetFogAttackSusSd, { arg out = 0, amp = 1, pan = 0, sustain = 1, sigatt = 0.01, sigdec = 3.16, feedBack = 0.2, freq = 0.8, gate = 1, doneAction = 2;
@@ -1544,6 +1555,70 @@ SynthDef(\benjolisSusSd,{ |out = 0, amp = 0.1, pan = 0, atk = 0.00001, rls = 0.2
 	output = LeakDC.ar(output * amp ! 2);
 	// OffsetOut.ar(out, output * EnvGate(fadeTime: fadeTime, doneAction: doneAction));
 	output = output * EnvGen.kr(Env.asr(atk, 1, rls), 1, timeScale: sustain, doneAction: doneAction);
+	OffsetOut.ar(out, DirtPan.ar(output, ~dirt.numChannels, pan));
+}).add;
+
+~synthSd = SynthDef(\benjolis_Sd,{ |out = 0, amp = 0.1, pan = 0, attack = 0.01, release = 4, sustain = 1, curve = (-4), envPow = 1, atk = 0.00001, rls = 0.2, fadeTime = 0.01, freq1= 40, freq2=4, scaler=1, rungler1=0.16, rungler2=0.0, runglerFilt=9, loop=0, filtFreq=40, rq=0.82, gain=1, filterType=0, outSignal=6, doneAction = 2|
+	var osc1, osc2, tri1, tri2, sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8=1, rungler, pwm, filt, output;
+	var sr;
+	var osc2freq, buf, bufR, globalEnv;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release, curve: curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+	bufR = LocalIn.ar(2,0);
+	rungler = bufR.at(0);
+	buf = bufR.at(1);
+
+	sr = SampleDur.ir;
+	//sr = ControlDur.ir;
+	tri1 = LFTri.ar((rungler*rungler1)+freq1);
+	tri2 = LFTri.ar((rungler*rungler2)+freq2);
+	osc1 = PulseDPW.ar((rungler*rungler1)+freq1);
+	osc2 = PulseDPW.ar((rungler*rungler2)+freq2);
+
+	//pwm = tri1 > tri2;
+	pwm = BinaryOpUGen('>', (tri1 + tri2),(0));
+
+	osc1 = ((buf*loop)+(osc1* (loop* -1 +1)));
+	sh0 = BinaryOpUGen('>', osc1, 0.5);
+	sh0 = BinaryOpUGen('==', (sh8 > sh0), (sh8 < sh0));
+	sh0 = (sh0 * -1) + 1;
+
+	sh1 = DelayN.ar(Latch.ar(sh0,osc2),0.01,sr);
+	sh2 = DelayN.ar(Latch.ar(sh1,osc2),0.01,sr*2);
+	sh3 = DelayN.ar(Latch.ar(sh2,osc2),0.01,sr*3);
+	sh4 = DelayN.ar(Latch.ar(sh3,osc2),0.01,sr*4);
+	sh5 = DelayN.ar(Latch.ar(sh4,osc2),0.01,sr*5);
+	sh6 = DelayN.ar(Latch.ar(sh5,osc2),0.01,sr*6);
+	sh7 = DelayN.ar(Latch.ar(sh6,osc2),0.01,sr*7);
+	sh8 = DelayN.ar(Latch.ar(sh7,osc2),0.01,sr*8);
+
+	//rungler = ((sh6/8)+(sh7/4)+(sh8/2)); //original circuit
+	//rungler = ((sh5/16)+(sh6/8)+(sh7/4)+(sh8/2));
+
+	rungler = ((sh1/2.pow(8))+(sh2/2.pow(7))+(sh3/2.pow(6))+(sh4/2.pow(5))+(sh5/2.pow(4))+(sh6/2.pow(3))+(sh7/2.pow(2))+(sh8/2.pow(1)));
+
+	buf = rungler;
+	rungler = (rungler * scaler.linlin(0,1,0,127));
+	rungler = rungler.midicps;
+
+	LocalOut.ar([rungler,buf]);
+
+	filt = Select.ar(filterType, [
+		RLPF.ar(pwm,(rungler*runglerFilt)+filtFreq,rq/** -1 +1*/,gain),
+		//BMoog.ar(pwm,(rungler*runglerFilt)+filtFreq,rq,0,gain),
+		RHPF.ar(pwm,(rungler*runglerFilt)+filtFreq,rq/** -1 +1*/,gain),
+		SVF.ar(pwm,(rungler*runglerFilt)+filtFreq,rq,1,0,0,0,0,gain),
+		DFM1.ar(pwm,(rungler*runglerFilt)+filtFreq,rq,gain,1)
+	]);
+
+	output = SelectX.ar(outSignal, [
+		tri1, osc1, tri2, osc2, pwm, sh0, filt
+
+	]);
+	output = LeakDC.ar(output * amp ! 2);
+	// OffsetOut.ar(out, output * EnvGate(fadeTime: fadeTime, doneAction: doneAction));
+	output = output * globalEnv;
 	OffsetOut.ar(out, DirtPan.ar(output, ~dirt.numChannels, pan));
 }).add;
 
@@ -2119,6 +2194,79 @@ SynthDef(\markSamFellLow_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, rele
 	/*sig = Pan2.ar(sig, pan);
 	OffsetOut.ar(out, sig);*/
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\gabor_Sd, { arg out = 0, amp = 0.25, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, doneAction = 2;
+
+    var trig = \trig.tr;
+
+    var freqEnv = EnvGen.kr(Env([1,2,1], [0.5, 0.01], \lin), trig);
+    var fltEnv = EnvGen.kr(Env([0.0125,1,0.0125], [\fAtk.kr(0.3), \fRel.kr(0.01)], \exp), trig);
+    var globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    var numPartials = 40;
+    var n = (1..numPartials);
+    var freqs = \freq.kr(150) * (n + (n * n * 0.05));
+    var cutoff, amps, sig;
+
+    cutoff = fltEnv * \fltRange.kr(8000);
+
+    amps = (
+        (freqs.log2 - cutoff.log2).squared
+        * \slope.kr(-5)
+    ).dbamp;
+
+    sig = SinOsc.ar(freqs * freqEnv.midiratio, 0, amps).sum * -25.dbamp;
+
+    sig = sig * globalEnv;
+
+    /*sig = Pan2.ar(sig, pan, amp);
+    Out.ar(out, sig);*/
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\additiveGabor_Sd, {
+    arg out = 0, amp = 0.25, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, index=1, iScale=3, time=1, doneAction = 2;
+
+    var numPartials = 40;
+    var bufAmps = LocalBuf(numPartials, 1);
+    var f0 = \freq.kr(68);
+    var sig, mod;
+
+    var iEnv = EnvGen.kr(Env([index, index * iScale, index], [\iAtk.kr(0.2), \iRel.kr(0.5)], \lin), timeScale: time);
+	var globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    BufWr.ar(
+        LFGauss.ar(
+            duration: SampleDur.ir * numPartials * \factor.kr(1, 0.5).reciprocal,
+            width: \width.kr(0.2, 0.5),
+            iphase: LFTri.ar(\phaseModFreq.kr(0.5)).linexp(-1, 1, 1, 2),
+        ),
+        bufnum: bufAmps,
+        phase: Phasor.ar(end: numPartials)
+    );
+
+    mod = SinOsc.ar(f0 * \mRatio.kr(1), mul: iEnv);
+
+    sig = Array.fill(numPartials, {|i|
+        var freqs, partials;
+        freqs = f0 * (i + (i * i * 0.05));
+        partials = SinOsc.ar(
+            freq: freqs * \cRatio.kr(1),
+            phase: mod.wrap(0, 4pi),
+            mul: Index.ar(bufAmps, i)
+        ) / numPartials;
+    }).sum;
+
+    sig = LeakDC.ar(sig);
+
+    sig = sig * globalEnv;
+
+    /*sig = Pan2.ar(sig, pan, amp);
+    Out.ar(out, sig);*/
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Sequence

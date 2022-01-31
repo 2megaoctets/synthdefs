@@ -866,14 +866,14 @@ SynthDef(\technokickSd, {
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, env * amp));
 }).add;
 
-SynthDef(\expodecPHSd, { |out, amp = 0.3, pan = 0, lev = 1, waveSel = 1, freqLow = 50, phaseLow = 3.14, ampLow = 0.3, freq = #[70, 90], click = 0, sustain = 0.9|
+SynthDef(\expodecPHSd, { |out, amp = 0.3, pan = 0, lev = 1, waveSel = 1, freqLow = 50, phaseLow = 3.14, ampLow = 0.3, freq = #[70, 90], click = 0, ampSin = 1, sustain = 0.9|
 	var body, snd, env;
 
 	env = XLine.ar(amp, amp * 0.001, sustain, doneAction: 2) * (AmpComp.ir(freq) * 0.5);
 
 	body = Select.kr(waveSel.mod(5), [SinOsc, VarSaw, LFTri, LFPar, LFPulse].collect(_.ar(freqLow, phaseLow) * ampLow));
 
-    snd = FSinOsc.ar(freq, click * 0.5pi);
+    snd = FSinOsc.ar(freq, click * 0.5pi, ampSin);
 	snd = Mix.ar(snd + body);
 
     // OffsetOut.ar(out, Pan2.ar(snd * env, pan));
@@ -1945,6 +1945,16 @@ SynthDef(\clapGraySd, { arg out = 0, amp = 0.1, pan = 0, att = 0.001, rel = 0.25
 
 	// OffsetOut.ar(out, Pan2.ar(snd, pan));
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\clapthanSd, { arg out = 0, amp = 0.2, pan = 0, envL1 = 0, envL2 = 1, envL3 = 0.5, envL4 = 1, envL5 = 0.5, envL6 = 1, envL7 = 0, envT1 = 0.001, envT2 = 0.01, envT3 = 0.001, envT4 = 0.01, envT5 = 0.001, envT6 = 0.01, curve = 0, hpfFrq = 1024, hpfRq = 0.3, doneAction = 2;
+    var snd, env;
+	env = Env([envL1, envL2, envL3, envL4, envL5, envL6, envL7], [envT1, envT2, envT3, envT4, envT5, envT6], curve).ar(doneAction);
+    snd = RHPF.ar(Hasher.ar(Sweep.ar), hpfFrq, hpfRq);
+    snd = snd * env;
+	/*snd = Pan2.ar(snd, pan, amp);
+    OffsetOut.ar(out, snd);*/
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Noise
@@ -4199,6 +4209,79 @@ SynthDef(\markSamFellLowSd, { arg out = 0, amp = 0.1, pan = 0, atk = 0.0001, sus
 	/*sig = Pan2.ar(sig, pan);
 	OffsetOut.ar(out, sig);*/
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\gaborSd, { arg out = 0, amp = 0.25, pan = 0, doneAction = 2;
+
+    var trig = \trig.tr;
+
+    var freqEnv = EnvGen.kr(Env([1,2,1], [0.5, 0.01], \lin), trig);
+    var fltEnv = EnvGen.kr(Env([0.0125,1,0.0125], [\fAtk.kr(0.3), \fRel.kr(0.01)], \exp), trig);
+    var gainEnv = EnvGen.kr(Env([0,1,0], [\atk.kr(0.01), \rel.kr(0.3)], \lin), trig, doneAction: doneAction);
+
+    var numPartials = 40;
+    var n = (1..numPartials);
+    var freqs = \freq.kr(150) * (n + (n * n * 0.05));
+    var cutoff, amps, sig;
+
+    cutoff = fltEnv * \fltRange.kr(8000);
+
+    amps = (
+        (freqs.log2 - cutoff.log2).squared
+        * \slope.kr(-5)
+    ).dbamp;
+
+    sig = SinOsc.ar(freqs * freqEnv.midiratio, 0, amps).sum * -25.dbamp;
+
+    sig = sig * gainEnv;
+
+    /*sig = Pan2.ar(sig, pan, amp);
+    Out.ar(out, sig);*/
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\additiveGaborSd, {
+    arg out = 0, amp = 0.25, pan = 0, index=1, iScale=3, gate=1, time=1, doneAction = 2;
+
+    var numPartials = 40;
+    var bufAmps = LocalBuf(numPartials, 1);
+    var f0 = \freq.kr(68);
+    var sig, mod;
+
+    var iEnv = EnvGen.kr(Env([index, index * iScale, index], [\iAtk.kr(0.2), \iRel.kr(0.5)], \lin), gate, timeScale: time);
+    var gainEnv = EnvGen.kr(Env.linen(\atk.kr(0.1), \sus.kr(0.5), \rel.kr(1), curve: \sine), gate, doneAction: doneAction);
+
+    BufWr.ar(
+        LFGauss.ar(
+            duration: SampleDur.ir * numPartials * \factor.kr(1, 0.5).reciprocal,
+            width: \width.kr(0.2, 0.5),
+            iphase: LFTri.ar(\phaseModFreq.kr(0.5)).linexp(-1, 1, 1, 2),
+        ),
+        bufnum: bufAmps,
+        phase: Phasor.ar(end: numPartials)
+    );
+
+    mod = SinOsc.ar(f0 * \mRatio.kr(1), mul: iEnv);
+
+    sig = Array.fill(numPartials, {|i|
+        var freqs, partials;
+        freqs = f0 * (i + (i * i * 0.05));
+        partials = SinOsc.ar(
+            freq: freqs * \cRatio.kr(1),
+            phase: mod.wrap(0, 4pi),
+            mul: Index.ar(bufAmps, i)
+        ) / numPartials;
+    }).sum;
+
+    sig = LeakDC.ar(sig);
+
+    sig = sig * gainEnv;
+
+    /*sig = Pan2.ar(sig, pan, amp);
+    Out.ar(out, sig);*/
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Sequence
