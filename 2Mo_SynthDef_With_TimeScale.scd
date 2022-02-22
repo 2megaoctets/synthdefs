@@ -883,6 +883,25 @@ SynthDef(\kick808AwSusSd, {arg out = 0, amp = 0.2, pan = 0, freqSrt = 240, freqE
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef.new(\bd808Horiuchi_Sd, { arg out = 0, amp = 2, pan = 0, attack = 0, release = 0.921, sustain = 1, curve = (-6.843224515159), envPow = 1, decay = 0.921, tone = 56, doneAction = 2;
+    var fenv, globalEnv, trienv, sig, sub, punch, pfenv;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    trienv = EnvGen.kr(Env.new([0.11, 0.6, 0], [0, decay], -230), doneAction: 0);
+    fenv = Env([tone*7, tone*1.35, tone], [0.05, 0.6], -14).kr;
+    pfenv = Env([tone*7, tone*1.35, tone], [0.03, 0.6], -10).kr;
+    sig = SinOsc.ar(fenv, pi/2) * globalEnv;
+    sub = LFTri.ar(fenv, pi/2) * trienv * 0.05;
+    punch = SinOsc.ar(pfenv, pi/2) * globalEnv * 2;
+    punch = HPF.ar(punch, 350);
+    sig = (sig + sub + punch) * 2.5;
+    sig = Limiter.ar(sig, 0.5) * amp;
+    // sig = Pan2.ar(sig, pan);
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  HiHat
 
 SynthDef(\haten_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0.0001, release = 1.3, sustain = 1, curve = (-4), envPow = 1, envL1 = 0, envL2 = 3, envL3 = 0, envL4 = 5, envT1 = 0, envT2 = 0.2, randFreq = 1, randAmt = 0.5, envT3 = 0.9, envT4 = 0.03, mixNoise = 0.5, sinFreq = 200, mixSaw = 0.5, sawFreq = 0, hpfreq = 400, hprq = 0.2, doneAction = 2;
@@ -1558,7 +1577,7 @@ SynthDef(\benjolisSusSd,{ |out = 0, amp = 0.1, pan = 0, atk = 0.00001, rls = 0.2
 	OffsetOut.ar(out, DirtPan.ar(output, ~dirt.numChannels, pan));
 }).add;
 
-~synthSd = SynthDef(\benjolis_Sd,{ |out = 0, amp = 0.1, pan = 0, attack = 0.01, release = 4, sustain = 1, curve = (-4), envPow = 1, atk = 0.00001, rls = 0.2, fadeTime = 0.01, freq1= 40, freq2=4, scaler=1, rungler1=0.16, rungler2=0.0, runglerFilt=9, loop=0, filtFreq=40, rq=0.82, gain=1, filterType=0, outSignal=6, doneAction = 2|
+SynthDef(\benjolis_Sd,{ |out = 0, amp = 0.1, pan = 0, attack = 0.01, release = 4, sustain = 1, curve = (-4), envPow = 1, atk = 0.00001, rls = 0.2, fadeTime = 0.01, freq1= 40, freq2=4, scaler=1, rungler1=0.16, rungler2=0.0, runglerFilt=9, loop=0, filtFreq=40, rq=0.82, gain=1, filterType=0, outSignal=6, doneAction = 2|
 	var osc1, osc2, tri1, tri2, sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8=1, rungler, pwm, filt, output;
 	var sr;
 	var osc2freq, buf, bufR, globalEnv;
@@ -2267,6 +2286,17 @@ SynthDef(\additiveGabor_Sd, {
     Out.ar(out, sig);*/
 
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef.new(\MC808Horiuchi_Sd, { arg out = 0, amp = 0.5, pan = 0, attack = 0, release = 0.5, sustain = 1, curve = (-12.843224515159), envPow = 1, freq = 250, doneAction = 2;
+    var sig, fenv, globalEnv;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    fenv = Env([freq*1.24, freq*1.12, freq], [0.1, 0.5], -4).kr;
+    sig = SinOsc.ar(fenv, pi/2);
+    // sig = Pan2.ar(sig * globalEnv * amp * 2, pan);
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv * amp * 2, ~dirt.numChannels, pan));
 }).add;
 
 ///////////////////////////////////////  Sequence

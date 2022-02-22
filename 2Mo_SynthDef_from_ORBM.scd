@@ -880,6 +880,23 @@ SynthDef(\expodecPHSd, { |out, amp = 0.3, pan = 0, lev = 1, waveSel = 1, freqLow
 	OffsetOut.ar(out, DirtPan.ar(snd * env, ~dirt.numChannels, pan, lev));
 }).add;
 
+~synthSd = SynthDef.new(\bd808HoriuchiSd, { arg out = 0, amp = 2, pan = 0, attack = 0, decay = 0.921, triEnvCrv = (-230), lev1Mul = 7, lev2Mul = 1.35, atkf = 0.05, dcyf = 0.6, crvf = (-14), atkpf = 0.03, dcypf = 0.6, crvpf = (-10), tone = 56, doneAction = 2;
+    var fenv, env, trienv, sig, sub, punch, pfenv;
+    env = EnvGen.kr(Env.new([0.11, 1, 0], [attack, decay], -6.843224515159), doneAction: doneAction);
+    trienv = EnvGen.kr(Env.new([0.11, 0.6, 0], [attack, decay], triEnvCrv), doneAction: 0);
+    fenv = Env([tone*lev1Mul, tone*lev2Mul, tone], [atkf, dcyf], crvf).kr;
+    pfenv = Env([tone*lev1Mul, tone*lev2Mul, tone], [atkpf, dcypf], crvpf).kr;
+    sig = SinOsc.ar(fenv, pi/2) * env;
+    sub = LFTri.ar(fenv, pi/2) * trienv * 0.05;
+    punch = SinOsc.ar(pfenv, pi/2) * env * 2;
+    punch = HPF.ar(punch, 350);
+    sig = (sig + sub + punch) * 2.5;
+    sig = Limiter.ar(sig, 0.5) * amp;
+    // sig = Pan2.ar(sig, pan);
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  Snare
 
 SynthDef(\sdSd, { | out = 0, amp = 1, pan = 0, att = 0, rel = 0.05, freq = 200, ffreq = 12000 |
@@ -4282,6 +4299,16 @@ SynthDef(\additiveGaborSd, {
     Out.ar(out, sig);*/
 
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef.new(\MC808HoriuchiSd, { arg out = 0, amp = 0.5, pan = 0, freq = 250, release = 0.5, curve = (-12.843224515159), doneAction = 2;
+    var sig, fenv, env;
+    env = EnvGen.kr(Env.new([0.15, 1, 0], [0, release], curve),doneAction: doneAction);
+    fenv = Env([freq*1.24, freq*1.12, freq], [0.1, 0.5], -4).kr;
+    sig = SinOsc.ar(fenv, pi/2);
+    // sig = Pan2.ar(sig * env * amp * 2, pan);
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig * env * amp * 2, ~dirt.numChannels, pan));
 }).add;
 
 ///////////////////////////////////////  Sequence
