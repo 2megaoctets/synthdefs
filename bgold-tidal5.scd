@@ -24,7 +24,7 @@ var recbuf = Array.fill(9, {|x| Buffer.alloc(server, server.sampleRate*4,1)});
 var notebus = Bus.control(s,1);
 var dronebus = Bus.control(s,5);
 var ringfunc = {|a,b| a*a+b;};
-var samplebuf = Buffer.read(server, "/home/pi/.local/share/SuperCollider/downloaded-quarks/Dirt-Samples/hoover/3.wav");
+var samplebuf = Buffer.read(server, "/home/fabien/.local/share/SuperCollider/downloaded-quarks/Dirt-Samples/hoover/3.wav");
 var fxbus = Bus.audio(s,2);
 
 var sinbuf = Buffer.alloc(server, server.sampleRate, 1);
