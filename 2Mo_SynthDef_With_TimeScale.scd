@@ -1945,6 +1945,60 @@ SynthDef(\addiditiveSin_Sd, { arg out = 0, amp = 0.9, pan = 0, attack = 0.001, r
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\fbDelNet_Sd, { arg out = 0, pan = 0, amp = 0.2, attack = 0.001, release = 1.2, sustain = 1, curve = (-4), envPow = 1, doneAction = 2;
+    var trig = \trig.tr(1);
+    var size, delTimes, delTimesSec, order;
+    var sig, inSig, modEnv, gainEnv, delMod;
+    var rotate, angle, matrix, householder4x4, givens2x2, kronecker, s, c;
+
+    rotate = SinOsc.ar(\rotateFreq.kr(0.1)).linlin(-1, 1, 0, \rotateAmount.kr(55));
+    angle = Phasor.ar(trig, rotate * SampleDur.ir, 0, 1) * 2pi;
+
+    s = angle.sin;
+    c = angle.cos;
+
+    givens2x2 = [
+        [ c, s.neg ],
+        [ s,  c ]
+    ];
+
+    householder4x4 = [
+        [ -0.5,  0.5,  0.5,  0.5 ],
+        [  0.5, -0.5,  0.5,  0.5 ],
+        [  0.5,  0.5, -0.5,  0.5 ],
+        [  0.5,  0.5,  0.5, -0.5 ],
+    ];
+
+    matrix = givens2x2.collect { |x|
+        x.collect { |y| householder4x4 * y }.reduce('+++')
+    }.reduce('++');
+
+    delMod = SinOsc.ar(2).linlin(-1, 1, 1, 4);
+
+    gainEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+    modEnv = EnvGen.ar(Env([0,1,0], [0.125, 0.5], [-8.0, -4.0]), trig);
+
+	inSig = Saw.ar(XLine.kr(\startFreq.kr(100), \endFreq.kr(1000), \durFreq.kr(0.1))) * gainEnv;
+    sig = Mix(inSig);
+
+    order = 8;
+    size = \size.kr(0.15) + modEnv.linlin(0, 1, 0, \sizeEnvAmount.kr(0.65));
+
+	delTimes = order.collect({|i| ((i + 1) * 511).max(1000).nextPrime });
+    delTimesSec = (delTimes * delMod) / 44100;
+
+    sig = sig + LocalIn.ar(order);
+    sig = DelayC.ar(sig, 0.5, delTimesSec * size - ControlDur.ir);
+    sig = sig * \feedback.kr(0.9);
+    sig = OnePole.ar(sig, \coef.kr(0.3));
+
+    sig = sig * matrix.flop;
+    sig = sig.sum;
+    LocalOut.ar(sig);
+    // OffsetOut.ar(out, Pan2.ar((inSig + Splay.ar(sig)), pan, amp) * 0.5);
+	OffsetOut.ar(out, DirtPan.ar((inSig + Splay.ar(sig)), ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Tonal
 
 SynthDef(\fakeResSusSd, {
