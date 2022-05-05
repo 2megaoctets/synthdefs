@@ -168,7 +168,7 @@ SynthDef(\IkedaBassSusSd, { arg out = 0, amp = 1, pan = 0, envL1 = 0.2, envL2 = 
 	// OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\kickRingz_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, release = 1.2, sustain = 1, envPow = 1, clickCurve = (-4), clickInScale = 1, clickEnvPow = 1, clickHpf = 80, clickHpRq = 1, clickLpf = 13000, clickLpRq = 1, clickAmp = 1, envL1 = 0.1, envL2 = 1.2, envL3 = 3, envL4 = 2.1, envL5 = 0.1, envT1 = 0.1, envT2 = 0.2, envT3 = 0, envT4 = 0.1, curve = (-4), envpL1 = 0.1, envpL2 = 1.2, envpL3 = 3, envpL4 = 2.1, envpT1 = 0.1, envpT2 = 0, envpT3 = 1.2, curvep = (-4), freq = 40, dcy = 0.25, ffreq = 1000, doneAction = 2;
+~synthSd = SynthDef(\kickRingz_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, release = 1.2, sustain = 1, envPow = 1, clickCurve = (-4), clickInScale = 1, clickEnvPow = 1, clickHpf = 80, clickHpRq = 1, clickLpf = 13000, clickLpRq = 1, clickAmp = 1, envL1 = 0.1, envL2 = 1.2, envL3 = 3, envL4 = 2.1, envL5 = 0.1, envT1 = 0.1, envT2 = 0.2, envT3 = 0, envT4 = 0.1, curve = (-4), envpL1 = 0.1, envpL2 = 1.2, envpL3 = 3, envpL4 = 2.1, envpT1 = 0.1, envpT2 = 0, envpT3 = 1.2, curvep = (-4), freq = 40, dcy = 0.25, ffreq = 1000, doneAction = 2;
 	var globalEnv, snd, env, envp, envClick, click;
 
 	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
@@ -209,6 +209,21 @@ SynthDef(\kickMistSusSd, { arg out = 0, level = 1, pan = 0, tu = 1, noise = 1, e
 	sig = sig.clip2(1);
 	// OffsetOut.ar(out, Pan2.ar(sig, pan, level));
 	OffsetOut.ar(out, DirtPan.ar(sig * env0, ~dirt.numChannels, pan, level));
+}).add;
+
+SynthDef(\kickMist_Sd, { arg out = 0, level = 1, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, tu = 1, noise = 1, env0L1 = 0.5, env0L2 = 1, env0L3 = 0.3, env0L4 = 0, env0T1 = 0.01, env0T2 = 0.5, env0T3 = 0.26, curve0_1 = (-4), curve0_2 = (-2), curve0_3 = (-4), env1L1 = 120, env1L2 = 43, env1L3 = 29, env1T1 = 0.03, env1T2 = 0.29, curve1_1 = (-4), curve1_2 = (-5), doneAction = 2;
+	var env0, env1, env1m, sig, globalEnv;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+	env0 =  EnvGen.ar(Env.new([env0L1, env0L2, env0L3, env0L4], [env0T1, env0T2, env0T3], [curve0_1, curve0_2, curve0_3]), timeScale: sustain, doneAction: doneAction);
+	env1 = EnvGen.ar(Env.new([env1L1, env1L2, env1L3], [env1T1, env1T2], [curve1_1, curve1_2]));
+	env1m = env1.midicps;
+	sig = LFPulse.ar(env1m*tu, 0, 0.5, 1, -0.5);
+	sig = sig + WhiteNoise.ar(noise);
+	sig = LPF.ar(sig, env1m*1.5, env0);
+	sig = sig + SinOsc.ar(env1m*tu, 0.5, env0);
+	sig = sig.clip2(1);
+	// OffsetOut.ar(out, Pan2.ar(sig, pan, level));
+	OffsetOut.ar(out, DirtPan.ar(sig * env0 * globalEnv, ~dirt.numChannels, pan, level));
 }).add;
 
 SynthDef(\kickhi_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, vcaLev1 = 0.5, vcaLev2 = 0.1, vcaLev3 = 0.01, vcaLev4 = 0.01, vcaLev5 = 0, vcaTime1 = 0.01, vcaTime2 = 0.5, vcaTime3 = 1.26, vcaTime4 = 0.1, vcaCurve1 = (-4), vcaCurve2 = (-2), vcaCurve3 = (-4), vcfLev1 = 122, vcfLev2 = 30, vcfLev3 = 33, vcfLev4 = 28, vcfTime1 = 0.05, vcfTime2 = 0.29, vcfTime3 = 1, vcfCurve1 = (-4), vcfCurve2 = (-5), tu = 1, sinLev = 16, sinFreq = 1, doneAction = 2;
@@ -1407,6 +1422,18 @@ SynthDef(\tweetFogAttackSusSd, { arg out = 0, amp = 1, pan = 0, sustain = 1, sig
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\tweetFogAttack_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release = 1, sustain = 1, curve = (-4), envPow = 1, feedBack = 0.2, freq = 0.8, doneAction = 2;
+	var sig, env, coef, globalEnv;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+	sig = Pulse.ar(freq*(pi/[1,2.57]),[0.54,0.46]);
+	coef = (1-LocalIn.ar(2)).fold(0,[0.9,0.85]);
+	sig = LeakDC.ar(Integrator.ar(sig, coef).wrap2(pi).sin);
+	LocalOut.ar(sig * feedBack);
+	sig = (sig.mean) * globalEnv;
+	// OffsetOut.ar(out, sig * amp);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
 SynthDef(\attBreathSusSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, release = 2, seqv1 = 1, seqv2 = 1, seqv3 = 4, seqv4 = 2, seqv5 = 2, seqFreq = 0.2, freqMin = 250, freqMax = 800, bwrMod = 0.5, gate = 1, sustain = 1, doneAction = 2;
 	var sig, env;
 	env = EnvGen.kr(Env.asr(attack, releaseTime: release), gate, timeScale: sustain, doneAction: doneAction);
@@ -2373,6 +2400,26 @@ SynthDef(\talters1SusSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, sustain
 	LocalOut.ar(sig);
 	// OffsetOut.ar(out, sig * env * amp);
 	OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\talters1_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, release = 0.5, sustain = 1, curve = (-12.843224515159), envPow = 1, feedBack = 1, envL1 = 0, envL2 = 2, envL3 = 4, envL4 = 16, envT1 = 0.01, envT2 = 0.2, envT3 = 0.12, envCurve = (-4), decDens = 0.25, decTimeFreq = 0.1, decamp = 999, doneAction = 2;
+	var sig, globalEnv, input, modenv, harmk, ampk, ringk;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+	input = LocalIn.ar(2) * feedBack;
+	modenv = EnvGen.ar(Env([envL1, envL2, envL3, envL4], [envT1, envT2, envT3], envCurve));
+	sig = ({
+		|k|
+		({
+			|i|
+			y = SinOsc;
+			y.ar(
+				(i*k*k) * modenv,
+				y.ar(i*k**i/[modenv, (i*k)+modenv]) * Decay.kr(Dust.kr(decDens - input), (y.ar(decTimeFreq)+1*k+i) * modenv, k*decamp))
+		}!3).product;
+	}!4).sum;
+	LocalOut.ar(sig);
+	// OffsetOut.ar(out, sig * globalEnv * amp);
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
 SynthDef(\padovan_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, tridDur = 1, freq = 165, doneAction = 2;
