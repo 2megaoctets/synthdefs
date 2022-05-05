@@ -508,8 +508,9 @@ SynthDef(\hat, { | out=0 |
 	var osc1, env, pan=0.0;
 	osc1 = WhiteNoise.ar;
 	env = EnvGen.kr(Env.perc(0, 0.01), doneAction: 2);
+	osc1 = osc1 * env;
 	// Out.ar(out, Pan2.ar(osc1, 0, env));
-	OffsetOut.ar(out, DirtPan.ar(osc1, 0, ~dirt.numChannels, pan));
+	OffsetOut.ar(out, DirtPan.ar(osc1, ~dirt.numChannels, pan));
 }).add;
 
 
