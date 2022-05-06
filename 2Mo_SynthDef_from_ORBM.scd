@@ -880,7 +880,7 @@ SynthDef(\expodecPHSd, { |out, amp = 0.3, pan = 0, lev = 1, waveSel = 1, freqLow
 	OffsetOut.ar(out, DirtPan.ar(snd * env, ~dirt.numChannels, pan, lev));
 }).add;
 
-~synthSd = SynthDef.new(\bd808HoriuchiSd, { arg out = 0, amp = 2, pan = 0, attack = 0, decay = 0.921, triEnvCrv = (-230), lev1Mul = 7, lev2Mul = 1.35, atkf = 0.05, dcyf = 0.6, crvf = (-14), atkpf = 0.03, dcypf = 0.6, crvpf = (-10), tone = 56, doneAction = 2;
+SynthDef.new(\bd808HoriuchiSd, { arg out = 0, amp = 2, pan = 0, attack = 0, decay = 0.921, triEnvCrv = (-230), lev1Mul = 7, lev2Mul = 1.35, atkf = 0.05, dcyf = 0.6, crvf = (-14), atkpf = 0.03, dcypf = 0.6, crvpf = (-10), tone = 56, doneAction = 2;
     var fenv, env, trienv, sig, sub, punch, pfenv;
     env = EnvGen.kr(Env.new([0.11, 1, 0], [attack, decay], -6.843224515159), doneAction: doneAction);
     trienv = EnvGen.kr(Env.new([0.11, 0.6, 0], [attack, decay], triEnvCrv), doneAction: 0);
@@ -2895,6 +2895,60 @@ SynthDef(\addiditiveSinSd, { arg out = 0, amp = 0.9, pan = 0, atk = 0.0001, stn 
 
 	OffsetOut.ar(out, sig);*/
 	OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\fbDelNetSd, { arg out = 0, pan = 0, amp = 0.2, atk = 0.001, rls = 1, stn = 1, crv = (-4), doneAction = 2;
+    var trig = \trig.tr(1);
+    var size, delTimes, delTimesSec, order;
+    var sig, inSig, modEnv, gainEnv, delMod;
+    var rotate, angle, matrix, householder4x4, givens2x2, kronecker, s, c;
+
+    rotate = SinOsc.ar(\rotateFreq.kr(0.1)).linlin(-1, 1, 0, \rotateAmount.kr(55));
+    angle = Phasor.ar(trig, rotate * SampleDur.ir, 0, 1) * 2pi;
+
+    s = angle.sin;
+    c = angle.cos;
+
+    givens2x2 = [
+        [ c, s.neg ],
+        [ s,  c ]
+    ];
+
+    householder4x4 = [
+        [ -0.5,  0.5,  0.5,  0.5 ],
+        [  0.5, -0.5,  0.5,  0.5 ],
+        [  0.5,  0.5, -0.5,  0.5 ],
+        [  0.5,  0.5,  0.5, -0.5 ],
+    ];
+
+    matrix = givens2x2.collect { |x|
+        x.collect { |y| householder4x4 * y }.reduce('+++')
+    }.reduce('++');
+
+    delMod = SinOsc.ar(2).linlin(-1, 1, 1, 4);
+
+    gainEnv = EnvGen.ar(Env.perc(atk, rls, 1, crv), trig, timeScale: stn, doneAction: doneAction);
+    modEnv = EnvGen.ar(Env([0,1,0], [0.125, 0.5], [-8.0, -4.0]), trig);
+
+	inSig = Saw.ar(XLine.kr(\startFreq.kr(100), \endFreq.kr(1000), \durFreq.kr(0.1))) * gainEnv;
+    sig = Mix(inSig);
+
+    order = 8;
+    size = \size.kr(0.15) + modEnv.linlin(0, 1, 0, \sizeEnvAmount.kr(0.65));
+
+	delTimes = order.collect({|i| ((i + 1) * 511).max(1000).nextPrime });
+    delTimesSec = (delTimes * delMod) / 44100;
+
+    sig = sig + LocalIn.ar(order);
+    sig = DelayC.ar(sig, 0.5, delTimesSec * size - ControlDur.ir);
+    sig = sig * \feedback.kr(0.9);
+    sig = OnePole.ar(sig, \coef.kr(0.3));
+
+    sig = sig * matrix.flop;
+    sig = sig.sum;
+    LocalOut.ar(sig);
+    // OffsetOut.ar(out, Pan2.ar((inSig + Splay.ar(sig)), pan, amp) * 0.5);
+	OffsetOut.ar(out, DirtPan.ar((inSig + Splay.ar(sig)), ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Tonal
