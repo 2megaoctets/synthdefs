@@ -132,7 +132,7 @@ SynthDef(\kickhiSd, { arg out = 0, amp = 0.3, pan = 0, vcaLev1 = 0.5, vcaLev2 = 
 
 SynthDef(\kick2Sd,{arg out = 0, gate = 1, freq = 60, tu = 1, amp = 1, atf = 80, rel =1, pan = 1;
 	var env = EnvGen.ar(Env.perc(0,rel),gate,doneAction:2);
-	var frequ = EnvGen.ar(Env([freq-30,freq,60],[0.001,0.01]));
+	var frequ = EnvGen.ar(Env([freq-30, freq, 60],[0.001, 0.01]));
 	var sig = SinOsc.ar(frequ*tu,0,env);
 	// sig = Pan2.ar(LPF.ar(sig,100), pan, amp);
 	// OffsetOut.ar(out, sig);
