@@ -4365,6 +4365,31 @@ SynthDef.new(\MC808HoriuchiSd, { arg out = 0, amp = 0.5, pan = 0, freq = 250, re
 	OffsetOut.ar(out, DirtPan.ar(sig * env * amp * 2, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\TonicSd, { | out=0,amp=0.7,pan=0,oscfreq=50,lfofreq=200,lfoamount=0,penvamount=200,    decaycurve=(-5),patt=0.001,pdec=0.200,shamount=0,shrate=3,ampatt=0.001,ampdec=0.7,ampdecaycurve=(-5),oscwaveform=1,noiseatt=0.001,noisedec=0.164,noiseamp=0.6,xfade=0,nfiltfreq=1800,noisereso=0.2,noisefiltselect=0,
+    drive=2,doneAction=2 |
+    var sin,tri,saw,lfo,modsh,penv,ampenv,sh,signal,noisesig,noiseenv,noisesigbp,noisesighp,noisesiglp;
+    noisesig=WhiteNoise.ar*noiseamp;
+    noiseenv=EnvGen.ar(Env([0,1,0],[noiseatt,noisedec],[0,-5]));
+    noisesig=noisesig*noiseenv;
+    noisesigbp=BPF.ar(noisesig,nfiltfreq,rq:noisereso);
+    noisesighp=RHPF.ar(noisesig,nfiltfreq,rq:noisereso);
+    noisesiglp=RLPF.ar(noisesig,nfiltfreq,rq:noisereso);
+    noisesig=Select.ar(noisefiltselect,[noisesigbp,noisesighp,noisesiglp]);
+    sh=LFNoise0.ar(shrate)*shamount;
+    penv=EnvGen.ar(Env([0,1,0],[patt,pdec],[0,decaycurve]),doneAction:0)*penvamount;
+    ampenv=EnvGen.ar(Env([0,1,0],[ampatt,ampdec],[0,ampdecaycurve]),doneAction:doneAction);
+    lfo=SinOsc.ar(lfofreq)*lfoamount;
+    sin=SinOsc.ar(oscfreq+penv+lfo+sh)*ampenv;
+    tri=LFTri.ar(oscfreq+ penv +lfo+sh)*ampenv;
+    saw=LFSaw.ar(oscfreq+penv+lfo+sh)*ampenv;
+    signal=Select.ar(oscwaveform,[sin,tri,saw]);
+    signal=XFade2.ar(signal,noisesig,pan:xfade);
+    signal=((signal)*drive).tanh;
+    // signal=Pan2.ar(signal,pos:pan)*amp;
+    // OffsetOut.ar(out,signal);
+    OffsetOut.ar(out, DirtPan.ar(signal * amp, ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\virgoSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1, feedback = 7.5, freq1 = 32, freq2 = 33, delaytime = 2, decaytime = 40, gate = 1, doneAction = 2;
@@ -5222,6 +5247,32 @@ SynthDef(\bigraphSd, { arg out = 0, amp = 0.2, pan = 0, atk = 0.0001, dcy = 0.1,
     // sig = Pan2.ar(Splay.ar(sig), pan, amp);
     // OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(Splay.ar(sig), ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\floatingPointErrorsSd, { arg out = 0, amp = 1, pan = 0, atk = 0.0001, dcy = 0.1, stn = 1, rls = 2, crv = (-12), envPow = 1, doneAction = 2;
+    var sig, sig1, pink1, sig2, pink2, sig3, pink3, sig4, sig5, env;
+
+    env = EnvGen.kr(Env.adsr(atk, dcy, stn, rls, curve: crv), doneAction: doneAction).pow(envPow);
+
+    pink1 = PinkNoise.ar().range(0.08, 0.12) ! 2;
+    sig1 = 0.5 * LeakDC.ar(Median.ar(2, Limiter.ar(99999999*(SawDPW.ar(pink1, 0) + SawDPW.ar(pink1, pi)), 0.9)));
+
+    pink2 = PinkNoise.ar().range(0.0999/3, 0.1001/3) ! 2;
+    sig2 = 0.5*LeakDC.ar(Median.ar(5, Limiter.ar(99999999*(SawDPW.ar(pink2, 0) + SawDPW.ar(pink2, pi)), 0.9)));
+
+    pink3 = PinkNoise.ar().range(0.00999, 0.01001) ! 2;
+    sig3 = 0.5 * Median.ar(20, Limiter.ar(999999*LeakDC.ar(SawDPW.ar(pink3, 0+(pi/2)) + SawDPW.ar(pink3, pi+(pi/2))), 0.1));
+
+    sig4 = 0.5 * Median.ar(30, Limiter.ar(99999999*LeakDC.ar((SinOsc.ar(0.005, 0) + SinOsc.ar(0.005, pi)), 0.05))) ! 2;
+
+    sig5 = 0.5 * SVF.ar((Median.ar(10, Limiter.ar(999999*LeakDC.ar(LFPulse.ar(0.5, 0) + LFPulse.ar(0.5, pi)), 0.6))), 800) ! 2;
+
+    sig = sig1 + sig2 + sig3 + sig4 + sig5;
+    sig = Limiter.ar(sig, 0.8);
+    sig = Balance2.ar(sig[0], sig[1], pan, amp);
+
+    // OffsetOut.ar(out, sig);
+    OffsetOut.ar(out, DirtPan.ar(sig * env, ~dirt.numChannels));
 }).add;
 
 )
