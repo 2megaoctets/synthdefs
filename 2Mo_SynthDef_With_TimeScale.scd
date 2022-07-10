@@ -394,6 +394,31 @@ SynthDef(\kickParallaxSusSd, { arg out = 0, amp = 1, pan = 0, envAmpAtt = 0.01, 
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\kickParallax_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, envFrqAtt = 0, envFrqRel = 0.02, freq = 55, kharm1 = 1, kharm2 = 2, kharm3 = 3, kharm4 = 4, kamp1 = 0.05, kamp2 = 0.05, kamp3 = 0.05, kamp4 = 0.05, kring1 = 1, kring2 = 1, kring3 = 1, kring4 = 1, frqScale = 1, decScale = 1, resoMix = 0.5, doneAction = 2;
+	var sig, env_freq, kharm, kamp, kring, reso, globalEnv;
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+	env_freq = Env.perc (envFrqAtt, envFrqRel, 1);
+	env_freq = EnvGen.ar (env_freq);
+
+	sig = SinOsc.ar (freq + (44100 ** env_freq), 0, globalEnv);
+
+	// harmonics
+	kharm = [kharm1, kharm2, kharm3, kharm4];
+    // amplitudes
+	kamp = [kamp1, kamp2, kamp3, kamp4];
+    // ring times
+	kring = [kring1, kring2, kring3, kring4];
+
+    //reso = Klank.ar(`[kharm, kamp, kring], sig, frqScale, decScale);
+	reso = DynKlank.ar(`[kharm, kamp, kring], sig, frqScale, decScale);
+	sig = SelectX.ar(resoMix, [sig, reso]);
+	// sig = Pan2.ar (sig, pan);
+	// OffsetOut.ar (out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
 SynthDef(\rc808KickSusSd, {
     arg out = 0, pan = 0, dcy = 30, amp = 0.3, gate = 0, tone = 56, sustain = 1, doneAction = 2;
     var fenv, env, trienv, sig, sub, punch, pfenv;
@@ -2380,6 +2405,31 @@ SynthDef.new(\MC808Horiuchi_Sd, { arg out = 0, amp = 0.5, pan = 0, attack = 0, r
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv * amp * 2, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\Tonic_Sd, { |  out=0,amp=0.7,pan=0,attack=0,release=0.5,sustain=1,curve=(-4),envPow=1,oscfreq=50,lfofreq=200,lfoamount=0,penvamount=200,decaycurve=(-5),patt=0.001,pdec=0.200,shamount=0,shrate=3,ampatt=0.001,ampdec=0.7,ampdecaycurve=(-5),oscwaveform=1,noiseatt=0.001,noisedec=0.164,noiseamp=0.6,xfade=0,nfiltfreq=1800,noisereso=0.2,noisefiltselect=0,drive=2,doneAction=2 |
+	var sin,tri,saw,lfo,modsh,penv,ampenv,sh,signal,noisesig,noiseenv,noisesigbp,noisesighp,noisesiglp, globalEnv;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+	noisesig=WhiteNoise.ar*noiseamp;
+	noiseenv=EnvGen.ar(Env([0,1,0],[noiseatt,noisedec],[0,-5]));
+	noisesig=noisesig*noiseenv;
+	noisesigbp=BPF.ar(noisesig,nfiltfreq,rq:noisereso);
+	noisesighp=RHPF.ar(noisesig,nfiltfreq,rq:noisereso);
+	noisesiglp=RLPF.ar(noisesig,nfiltfreq,rq:noisereso);
+	noisesig=Select.ar(noisefiltselect,[noisesigbp,noisesighp,noisesiglp]);
+	sh=LFNoise0.ar(shrate)*shamount;
+	penv=EnvGen.ar(Env([0,1,0],[patt,pdec],[0,decaycurve]),doneAction:0)*penvamount;
+	ampenv=EnvGen.ar(Env([0,1,0],[ampatt,ampdec],[0,ampdecaycurve]));
+	lfo=SinOsc.ar(lfofreq)*lfoamount;
+	sin=SinOsc.ar(oscfreq+penv+lfo+sh)*ampenv;
+	tri=LFTri.ar(oscfreq+ penv +lfo+sh)*ampenv;
+	saw=LFSaw.ar(oscfreq+penv+lfo+sh)*ampenv;
+	signal=Select.ar(oscwaveform,[sin,tri,saw]);
+	signal=XFade2.ar(signal,noisesig,pan:xfade);
+	signal=((signal)*drive).tanh;
+	// signal=Pan2.ar(signal,pos:pan)*amp;
+	// OffsetOut.ar(out,signal);
+	OffsetOut.ar(out, DirtPan.ar(signal * globalEnv * amp, ~dirt.numChannels, pan));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\talters1SusSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, sustain = 1, release = 10, feedBack = 1, envL1 = 0, envL2 = 2, envL3 = 4, envL4 = 16, envT1 = 0.01, envT2 = 0.2, envT3 = 0.12, envCurve = (-4), decDens = 0.25, decTimeFreq = 0.1, decamp = 999, gate = 1, doneAction = 2;
@@ -3221,6 +3271,32 @@ SynthDef(\bigraph_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0, release = 1
     // sig = Pan2.ar(Splay.ar(sig), pan, amp);
     // OffsetOut.ar(out, sig);
 	OffsetOut.ar(out, DirtPan.ar(Splay.ar(sig), ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\floatingPointErrors_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, doneAction = 2;
+    var sig, sig1, pink1, sig2, pink2, sig3, pink3, sig4, sig5, globalEnv;
+
+	globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    pink1 = PinkNoise.ar().range(0.08, 0.12) ! 2;
+    sig1 = 0.5 * LeakDC.ar(Median.ar(2, Limiter.ar(99999999*(SawDPW.ar(pink1, 0) + SawDPW.ar(pink1, pi)), 0.9)));
+
+    pink2 = PinkNoise.ar().range(0.0999/3, 0.1001/3) ! 2;
+    sig2 = 0.5*LeakDC.ar(Median.ar(5, Limiter.ar(99999999*(SawDPW.ar(pink2, 0) + SawDPW.ar(pink2, pi)), 0.9)));
+
+    pink3 = PinkNoise.ar().range(0.00999, 0.01001) ! 2;
+    sig3 = 0.5 * Median.ar(20, Limiter.ar(999999*LeakDC.ar(SawDPW.ar(pink3, 0+(pi/2)) + SawDPW.ar(pink3, pi+(pi/2))), 0.1));
+
+    sig4 = 0.5 * Median.ar(30, Limiter.ar(99999999*LeakDC.ar((SinOsc.ar(0.005, 0) + SinOsc.ar(0.005, pi)), 0.05))) ! 2;
+
+    sig5 = 0.5 * SVF.ar((Median.ar(10, Limiter.ar(999999*LeakDC.ar(LFPulse.ar(0.5, 0) + LFPulse.ar(0.5, pi)), 0.6))), 800) ! 2;
+
+    sig = sig1 + sig2 + sig3 + sig4 + sig5;
+    sig = Limiter.ar(sig, 0.8);
+    sig = Balance2.ar(sig[0], sig[1], pan, amp);
+
+    // OffsetOut.ar(out, sig);
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels));
 }).add;
 
 )
