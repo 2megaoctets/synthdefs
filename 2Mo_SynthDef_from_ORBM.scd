@@ -4390,6 +4390,110 @@ SynthDef(\TonicSd, { | out=0,amp=0.7,pan=0,oscfreq=50,lfofreq=200,lfoamount=0,pe
     OffsetOut.ar(out, DirtPan.ar(signal * amp, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\dx11algo3Sd, { //v3-->v2-->v1<--v4
+	arg out = 0, amp = 0.5, pan = 0, feedBack = 0.5, doneAction = 2;
+
+	var allArguments = (
+		\atk:  [\op1att.kr(0.001), \op2att.kr(0.001), \op3att.kr(0.001), \op4att.kr(0.001)],  // \atk.kr(0.00!4), or like this?
+		\dec:  [\op1dec.kr(0.4),   \op2dec.kr(3.25),  \op3dec.kr(0.15),  \op4dec.kr(1.25)],   // \dec.kr(0.1!4),
+		\sus:  [\op1sus.kr(0.01),  \op2sus.kr(0.1),   \op3sus.kr(0.1),   \op4sus.kr(0.1)],    // \sus.kr(0.1!4)
+		\rel:  [\op1rel.kr(0.1),   \op2rel.kr(0.1),   \op3rel.kr(0.1),   \op4rel.kr(0.1)],    // \rel.kr(0.1!4),
+		\amt:  [\op1amt.kr(1),     \op2amt.kr(4),     \op3amt.kr(2),     \op4amt.kr(2)],      // \amt.kr(2!4),
+		\tune: [\op1tune.kr(0),    \op2tune.kr(12),   \op3tune.kr(0),    \op4tune.kr(0)]      // \tune.kr(2!4)
+	);
+	var voice1 = allArguments.collect{|a| a[0] };
+	var voice2 = allArguments.collect{|a| a[1] };
+	var voice3 = allArguments.collect{|a| a[2] };
+	var voice4 = allArguments.collect{|a| a[3] };
+
+	var mk_env = {
+		|voice, done_action|
+		EnvGen.ar(Env.adsr(voice[\atk], voice[\dec], voice[\sus], voice[\rel]), doneAction: done_action ? 0)
+	};
+	var mk_freq = {
+		|voice|
+		(\pitch.kr(48) + voice[\tune]).midicps
+	};
+
+	var env3 = mk_env.(voice3);
+	var v3 = SinOsc.ar(mk_freq.(voice3)) * env3 * voice3[\amt];
+
+	var env2 = mk_env.(voice2);
+	var v2 = SinOsc.ar(mk_freq.(voice2), v3) * env2 * voice2[\amt];
+
+	var env4 = mk_env.(voice4);
+	var v4 = SinOscFB.ar(mk_freq.(voice4), env4 * feedBack) * env4 * voice4[\amt];
+
+	var env1 = mk_env.(voice1, doneAction);
+	var v1 = SinOsc.ar(mk_freq.(voice1), v2 + v4) * env1 * voice1[\amt];
+
+	// var final = Pan2.ar(v1 * amp, pos: pan);
+	//OffsetOut.ar(out, final);
+	OffsetOut.ar(out, DirtPan.ar(v1 * amp, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\SqwerSd, { | out = 0, amp = 0.1, pan = 0, ampattack = 0.001, ampdecay = 1, filtattack = 0.001, filtdecay = 0.500, osc1amp = 0.3, osc2amp = 0.3, osc3amp = 0.3, offset1 = -24, offset2 = -0.3, offset3 = 0.1, filterfreq = 800, res = 1, lp = 1, bp = 0, hp = 0, freq = 58, filteramount = 600, fsh = 3, xfade = 0, doneAction = 2 |
+    var sig, sig1, sig2, sig3, ampenvelope, filterenvelope;
+    filterenvelope = EnvGen.ar(Env([0, 1, 0], [filtattack, filtdecay], [0, -5]), doneAction: 0);
+    ampenvelope = EnvGen.ar(Env([0, 1, 0], [ampattack, ampdecay], [0, -5]), doneAction: doneAction);
+    sig1 = Pulse.ar((freq * (offset1.midicps)), mul: osc1amp);
+    sig2 = Pulse.ar((freq * (offset2.midicps) ), mul: osc2amp);
+    sig3 = Pulse.ar((freq * (offset3.midicps) ), mul: osc3amp);
+    sig = sig1 + sig2 + sig3;
+    sig = SVF.ar(sig, (filterfreq + (filterenvelope * filteramount)).clip(20, 20000), lowpass: lp, bandpass: bp, highpass: hp, res: res);
+    sig = sig * ampenvelope;
+    sig = XFade2.ar(sig, FreqShift.ar(sig, fsh), pan: xfade);
+    /*sig = Pan2.ar(sig, pan, amp);
+    OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\lazaerSd, { arg out = 0, amp = 0.03, pan = 0, doneAction = 2;
+    var lpfEnv, gainEnv;
+    var cutoff, tension, tilt, lpf, peakEQ;
+    var sig, freqs, numPartials, spectrum;
+
+    numPartials = 64;
+    spectrum = (1..numPartials);
+
+    lpfEnv = EnvGen.kr(Env(
+        [0, 1, 0],
+        [\fltAtk.kr(0.10), \fltRls.kr(0.90)],
+        [\fltAtkCurve.kr(4.0), \fltRlsCurve.kr(-8.0)]
+    ));
+
+    gainEnv = EnvGen.ar(Env(
+        [0, 1, 0],
+        [\atk.kr(0.01), \rls.kr(0.99)],
+        [\atkCurve.kr(4.0), \rlsCurve.kr(-4.0)]
+    ), doneAction: doneAction);
+
+    // harmonic tension
+    tension = (1 + (spectrum * spectrum * \inharmonic.kr(0.01))).sqrt;
+
+    // frequency spectrum
+    freqs = \frq.kr(103.826) * spectrum * tension;
+    sig = SinOsc.ar(freqs, { Rand(0, 2pi) } ! numPartials);
+
+    // 3db/octave spectral tilt
+    tilt = (log2(spectrum) * \tilt.kr(-3)).dbamp;
+
+    // LPF
+    cutoff = \lpfCutoff.kr(100) + lpfEnv.linlin(0, 1, 0, \lpfEnvAmount.kr(8000));
+    lpf = ((log2(freqs) - log2(cutoff)) * \lpfSlope.kr(-12)).min(0).dbamp;
+
+    // Peak EQ
+    peakEQ = ((log2(freqs) - log2(cutoff)).abs * \peakSlope.kr(-12) + \peakRes.kr(24)).max(0).dbamp;
+
+    sig = (sig * tilt * lpf * peakEQ).sum;
+
+    sig = sig * gainEnv;
+
+    /*sig = Pan2.ar(sig, pan, amp);
+    OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\virgoSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1, feedback = 7.5, freq1 = 32, freq2 = 33, delaytime = 2, decaytime = 40, gate = 1, doneAction = 2;

@@ -2405,6 +2405,115 @@ SynthDef(\Tonic_Sd, { |  out=0,amp=0.7,pan=0,attack=0,release=0.5,sustain=1,curv
     OffsetOut.ar(out, DirtPan.ar(signal * globalEnv * amp, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\dx11algo3_Sd, { //v3-->v2-->v1<--v4
+	arg out = 0, amp = 0.5, pan = 0, attack = 0.001, release = 0.5, sustain = 1, curve = (-4), envPow = 1, feedBack = 0.5, doneAction = 2;
+
+	var allArguments = (
+		\atk:  [\op1att.kr(0.001), \op2att.kr(0.001), \op3att.kr(0.001), \op4att.kr(0.001)],  // \atk.kr(0.00!4), or like this?
+		\dec:  [\op1dec.kr(0.4),   \op2dec.kr(3.25),  \op3dec.kr(0.15),  \op4dec.kr(1.25)],   // \dec.kr(0.1!4),
+		\sus:  [\op1sus.kr(0.01),  \op2sus.kr(0.1),   \op3sus.kr(0.1),   \op4sus.kr(0.1)],    // \sus.kr(0.1!4)
+		\rel:  [\op1rel.kr(0.1),   \op2rel.kr(0.1),   \op3rel.kr(0.1),   \op4rel.kr(0.1)],    // \rel.kr(0.1!4),
+		\amt:  [\op1amt.kr(1),     \op2amt.kr(4),     \op3amt.kr(2),     \op4amt.kr(2)],      // \amt.kr(2!4),
+		\tune: [\op1tune.kr(0),    \op2tune.kr(12),   \op3tune.kr(0),    \op4tune.kr(0)]      // \tune.kr(2!4)
+	);
+	var voice1 = allArguments.collect{|a| a[0] };
+	var voice2 = allArguments.collect{|a| a[1] };
+	var voice3 = allArguments.collect{|a| a[2] };
+	var voice4 = allArguments.collect{|a| a[3] };
+
+	var globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+	var mk_env = {
+		|voice, done_action|
+		EnvGen.ar(Env.adsr(voice[\atk], voice[\dec], voice[\sus], voice[\rel]), doneAction: done_action ? 0)
+	};
+	var mk_freq = {
+		|voice|
+		(\pitch.kr(48) + voice[\tune]).midicps
+	};
+
+	var env3 = mk_env.(voice3);
+	var v3 = SinOsc.ar(mk_freq.(voice3)) * env3 * voice3[\amt];
+
+	var env2 = mk_env.(voice2);
+	var v2 = SinOsc.ar(mk_freq.(voice2), v3) * env2 * voice2[\amt];
+
+	var env4 = mk_env.(voice4);
+	var v4 = SinOscFB.ar(mk_freq.(voice4), env4 * feedBack) * env4 * voice4[\amt];
+
+	var env1 = mk_env.(voice1);
+	var v1 = SinOsc.ar(mk_freq.(voice1), v2 + v4) * env1 * voice1[\amt];
+
+	// var final = Pan2.ar(v1 * amp, pos: pan);
+	//OffsetOut.ar(out, final);globalEnv
+	OffsetOut.ar(out, DirtPan.ar(v1 * amp * globalEnv, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\Sqwer_Sd, { | out = 0, amp = 0.1, pan = 0, attack = 0.001, release = 0.5, sustain = 1, curve = (-4), envPow = 1, ampattack = 0.001, ampdecay = 1, filtattack = 0.001, filtdecay = 0.500, osc1amp = 0.3, osc2amp = 0.3, osc3amp = 0.3, offset1 = -24, offset2 = -0.3, offset3 = 0.1, filterfreq = 800, res = 1, lp = 1, bp = 0, hp = 0, freq = 58, filteramount = 600, fsh = 3, xfade = 0, doneAction = 2 |
+    var sig, sig1, sig2, sig3, ampenvelope, filterenvelope, globalEnv;
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+    filterenvelope = EnvGen.ar(Env([0, 1, 0], [filtattack, filtdecay], [0, -5]), doneAction: 0);
+    ampenvelope = EnvGen.ar(Env([0, 1, 0], [ampattack, ampdecay], [0, -5]), doneAction: doneAction);
+    sig1 = Pulse.ar((freq * (offset1.midicps)), mul: osc1amp);
+    sig2 = Pulse.ar((freq * (offset2.midicps) ), mul: osc2amp);
+    sig3 = Pulse.ar((freq * (offset3.midicps) ), mul: osc3amp);
+    sig = sig1 + sig2 + sig3;
+    sig = SVF.ar(sig, (filterfreq + (filterenvelope * filteramount)).clip(20, 20000), lowpass: lp, bandpass: bp, highpass: hp, res: res);
+    sig = sig * ampenvelope;
+    sig = XFade2.ar(sig, FreqShift.ar(sig, fsh), pan: xfade);
+    /*sig = Pan2.ar(sig, pan, amp);
+    OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * globalEnv));
+}).add;
+
+SynthDef(\lazaer_Sd, { arg out = 0, amp = 0.03, pan = 0, attack = 0.001, release = 0.5, sustain = 1, curve = (-4), envPow = 1, doneAction = 2;
+    var lpfEnv, gainEnv, globalEnv;
+    var cutoff, tension, tilt, lpf, peakEQ;
+    var sig, freqs, numPartials, spectrum;
+
+    numPartials = 64;
+    spectrum = (1..numPartials);
+
+	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    lpfEnv = EnvGen.kr(Env(
+        [0, 1, 0],
+        [\fltAtk.kr(0.10), \fltRls.kr(0.90)],
+        [\fltAtkCurve.kr(4.0), \fltRlsCurve.kr(-8.0)]
+    ));
+
+    gainEnv = EnvGen.ar(Env(
+        [0, 1, 0],
+        [\atk.kr(0.01), \rls.kr(0.99)],
+        [\atkCurve.kr(4.0), \rlsCurve.kr(-4.0)]
+    ), doneAction: doneAction);
+
+    // harmonic tension
+    tension = (1 + (spectrum * spectrum * \inharmonic.kr(0.01))).sqrt;
+
+    // frequency spectrum
+    freqs = \frq.kr(103.826) * spectrum * tension;
+    sig = SinOsc.ar(freqs, { Rand(0, 2pi) } ! numPartials);
+
+    // 3db/octave spectral tilt
+    tilt = (log2(spectrum) * \tilt.kr(-3)).dbamp;
+
+    // LPF
+    cutoff = \lpfCutoff.kr(100) + lpfEnv.linlin(0, 1, 0, \lpfEnvAmount.kr(8000));
+    lpf = ((log2(freqs) - log2(cutoff)) * \lpfSlope.kr(-12)).min(0).dbamp;
+
+    // Peak EQ
+    peakEQ = ((log2(freqs) - log2(cutoff)).abs * \peakSlope.kr(-12) + \peakRes.kr(24)).max(0).dbamp;
+
+    sig = (sig * tilt * lpf * peakEQ).sum;
+
+    sig = sig * gainEnv;
+
+    /*sig = Pan2.ar(sig, pan, amp);
+    OffsetOut.ar(out, sig);*/
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * globalEnv));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\talters1SusSd, { arg out = 0, amp = 1, pan = 0, attack = 0.01, sustain = 1, release = 10, feedBack = 1, envL1 = 0, envL2 = 2, envL3 = 4, envL4 = 16, envT1 = 0.01, envT2 = 0.2, envT3 = 0.12, envCurve = (-4), decDens = 0.25, decTimeFreq = 0.1, decamp = 999, gate = 1, doneAction = 2;
@@ -3272,6 +3381,40 @@ SynthDef(\floatingPointErrors_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, r
 
     // OffsetOut.ar(out, sig);
     OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels));
+}).add;
+
+SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = 0, envPow = 1, segments = 49, xMajor = 10.0, yMajor = 1.0, rMajor = 100.1, rMinor = 1.1, circlefreq = 0.0001, doneAction = 2;
+    var sig, xMinor, yMinor, freqs, amps, phase, shuheiKawachi, globalEnv;
+
+    shuheiKawachi = { arg x, y, a, b;
+        ((cos(x) * cos(y))
+            + (cos((sqrt(a) * x - y) / b)
+                * cos((x + (sqrt(a) * y) ) / b))
+            + (cos(( sqrt(a) * x + y) /b)
+                * cos((x - (sqrt(a) * y*y)) / b)))/3;
+    };
+
+    globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    freqs = Array.exprand(49, 50, 1500).sort;
+    phase = #[0.0]!49;
+    //phase = Array.rand(49, 0, 2*pi);
+    amps = Array.new;
+    xMinor = xMajor + (rMajor * SinOsc.ar(circlefreq));
+    yMinor = yMajor + (rMajor * SinOsc.ar(circlefreq, pi/2));
+    amps = Array.fill(49,
+        {
+            arg seg;
+            var x = xMinor + (rMinor * sin(seg*2*pi/segments));
+            var y = yMinor + (rMinor * cos(seg*2*pi/segments));
+            var grey = abs(shuheiKawachi.(x, y, 2*pi, 0.5))/12;
+            grey
+        }
+    );
+    sig = DynKlang.ar(`[freqs, amps, phase]);
+    /*sig = Pan2.ar(sig, pan, amp);
+    OffsetOut.ar(out, sig * globalEnv);*/
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * globalEnv));
 }).add;
 
 )
