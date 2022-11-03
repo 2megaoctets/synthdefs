@@ -1388,7 +1388,7 @@ SynthDef(\clapGray_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\clapping_Sd, {arg out = 0, amp=0.5, pan = 0, attack = 0.01, release = 1, sustain = 1, curve = (-4), envPow = 1, envNoiseVol = 0, noiseAmp = 1, filterfreq=120, rq=0.1, sinAmpStart = 1, sinAmpEnd = 0.01, sinAmpDur = 4, lpfFreq = 400, hpfFreq = 120, delMix = 1, delTimeL = 0.03, delDecL = 0.031, delTimeR = 0.03016, delDecR = 0.06, gate=1, doneAction=2;
+SynthDef(\clapping_Sd, {arg out = 0, amp=0.5, pan = 0, attack = 0.01, release = 1, sustain = 1, curve = (-4), envPow = 1, envNoiseVol = 0, noiseAmp = 1, filterfreq=120, rq=0.1, sinAmpStart = 1, sinAmpEnd = 0.01, sinAmpDur = 4, lpfFreq = 400, hpfFreq = 120, delMix = 1, delTimeL = 0.03, delDecL = 0.031, delTimeR = 0.03016, delDecR = 0.06, doneAction=2;
 	var globalEnv, signal, noise, hpf1, hpf2, fx;
 	noise = WhiteNoise.ar(noiseAmp)+SinOsc.ar([filterfreq/2,filterfreq/6 ], pi*0.5, XLine.kr(sinAmpStart, sinAmpEnd, sinAmpDur));
 	hpf1 = RLPF.ar(noise, lpfFreq, rq);
@@ -2405,7 +2405,7 @@ SynthDef.new(\MC808Horiuchi_Sd, { arg out = 0, amp = 0.5, pan = 0, attack = 0, r
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv * amp * 2, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\Tonic_Sd, { |  out=0,amp=0.7,pan=0,attack=0,release=0.5,sustain=1,curve=(-4),envPow=1,oscfreq=50,lfofreq=200,lfoamount=0,penvamount=200,decaycurve=(-5),patt=0.001,pdec=0.200,shamount=0,shrate=3,ampatt=0.001,ampdec=0.7,ampdecaycurve=(-5),oscwaveform=1,noiseatt=0.001,noisedec=0.164,noiseamp=0.6,xfade=0,nfiltfreq=1800,noisereso=0.2,noisefiltselect=0,drive=2,doneAction=2 |
+SynthDef(\Tonic_Sd, { |  out=0,amp=0.7,pan=0,attack=0,release=0.5,sustain=1,curve=(-4),envPow=1,oscfreq=50,lfofreq=200,lfoamount=0,penvamount=200,decaycurve=(-5),patt=0.001,pdec=0.200,shamount=0,shrate=3,ampatt=0.001,ampdec=0.7,ampdecaycurve=(-5),oscwaveform=1,noiseatt=0.001,noisedec=0.164,noiseamp=0.6,mixfade=0,nfiltfreq=1800,noisereso=0.2,noisefiltselect=0,drive=2,doneAction=2 |
 	var sin,tri,saw,lfo,modsh,penv,ampenv,sh,signal,noisesig,noiseenv,noisesigbp,noisesighp,noisesiglp, globalEnv;
 	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
 	noisesig=WhiteNoise.ar*noiseamp;
@@ -2423,7 +2423,7 @@ SynthDef(\Tonic_Sd, { |  out=0,amp=0.7,pan=0,attack=0,release=0.5,sustain=1,curv
 	tri=LFTri.ar(oscfreq+ penv +lfo+sh)*ampenv;
 	saw=LFSaw.ar(oscfreq+penv+lfo+sh)*ampenv;
 	signal=Select.ar(oscwaveform,[sin,tri,saw]);
-	signal=XFade2.ar(signal,noisesig,pan:xfade);
+	signal=XFade2.ar(signal,noisesig,pan:mixfade);
 	signal=((signal)*drive).tanh;
 	// signal=Pan2.ar(signal,pos:pan)*amp;
 	// OffsetOut.ar(out,signal);
@@ -2474,7 +2474,7 @@ SynthDef(\dx11algo3_Sd, { //v3-->v2-->v1<--v4
     OffsetOut.ar(out, DirtPan.ar(v1 * amp * globalEnv, ~dirt.numChannels, pan));
 }).add;
 
-SynthDef(\Sqwer_Sd, { | out = 0, amp = 0.1, pan = 0, attack = 0.001, release = 0.5, sustain = 1, curve = (-4), envPow = 1, ampattack = 0.001, ampdecay = 1, filtattack = 0.001, filtdecay = 0.500, osc1amp = 0.3, osc2amp = 0.3, osc3amp = 0.3, offset1 = -24, offset2 = -0.3, offset3 = 0.1, filterfreq = 800, res = 1, lp = 1, bp = 0, hp = 0, freq = 58, filteramount = 600, fsh = 3, xfade = 0, doneAction = 2 |
+SynthDef(\Sqwer_Sd, { | out = 0, amp = 0.1, pan = 0, attack = 0.001, release = 0.5, sustain = 1, curve = (-4), envPow = 1, ampattack = 0.001, ampdecay = 1, filtattack = 0.001, filtdecay = 0.500, osc1amp = 0.3, osc2amp = 0.3, osc3amp = 0.3, offset1 = -24, offset2 = -0.3, offset3 = 0.1, filterfreq = 800, res = 1, lp = 1, bp = 0, hp = 0, freq = 58, filteramount = 600, fsh = 3, mixfade = 0, doneAction = 2 |
     var sig, sig1, sig2, sig3, ampenvelope, filterenvelope, globalEnv;
     globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
     filterenvelope = EnvGen.ar(Env([0, 1, 0], [filtattack, filtdecay], [0, -5]), doneAction: 0);
@@ -2485,7 +2485,7 @@ SynthDef(\Sqwer_Sd, { | out = 0, amp = 0.1, pan = 0, attack = 0.001, release = 0
     sig = sig1 + sig2 + sig3;
     sig = SVF.ar(sig, (filterfreq + (filterenvelope * filteramount)).clip(20, 20000), lowpass: lp, bandpass: bp, highpass: hp, res: res);
     sig = sig * ampenvelope;
-    sig = XFade2.ar(sig, FreqShift.ar(sig, fsh), pan: xfade);
+    sig = XFade2.ar(sig, FreqShift.ar(sig, fsh), pan: mixfade);
     /*sig = Pan2.ar(sig, pan, amp);
     OffsetOut.ar(out, sig);*/
     OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * globalEnv));
@@ -2660,7 +2660,7 @@ SynthDef(\LiljedDrumSeq1_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0.0001, r
 
 	krpsEnv = EnvGen.kr(Env.perc(krpsAtt, krpsRel), levelScale: krpsLev, timeScale: krpsSus).pow(krpsEnvPow);
 
-	imp = Impulse.ar(_); // * gate;
+	imp = { arg rate; Impulse.ar(rate); }; // * gate;
 
 	krps = Pluck.ar(
 		Saw.ar(sawFrq),
@@ -2802,15 +2802,16 @@ SynthDef(\bassSat_Sd, { arg out = 0, amp = 0.1, pan = 0, attack = 0, release = 1
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\turfuBass, { arg out = 0, amp = 0.25, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, index=1, iScale=5, doneAction = 2;
+SynthDef(\turfuBass_Sd, { arg out = 0, amp = 0.25, pan = 0, attack = 0, release = 1.4, sustain = 1, curve = (-4), envPow = 1, index=1, iScale=5, doneAction = 2;
     var trig = \trig.tr(1);
     var trigMod = LFNoise0.ar(8).round;
-    var sig, gainEnv, iEnv, mod;
+    var sig, globalEnv, iEnv, mod;
     var low, mid, high;
     var lowFreq, highFreq, phase, waveform, shaped;
 
     iEnv = EnvGen.ar(Env([0, index, index * iScale, index], [0.0001, 5, 1], \lin), trig);
-	gainEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), (trig * trigMod).abs, timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+	globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), (trig * trigMod).abs, timeScale: sustain, doneAction: doneAction).pow(envPow);
 
     mod = Sweep.ar(trig * trigMod, [51.913, 726.783]);
 
@@ -2838,13 +2839,13 @@ SynthDef(\turfuBass, { arg out = 0, amp = 0.25, pan = 0, attack = 0, release = 1
 
     sig = low + mid + high;
 
-    sig = sig * gainEnv * amp;
+    sig = sig * amp;
 
     sig = MidEQ.ar(sig, 13289.75, 0.7, 8);
     sig = LeakDC.ar(sig);
 	/*sig = Pan2.ar(Limiter.ar(sig), pan);
     OffsetOut.ar(out, sig);*/
-	OffsetOut.ar(out, DirtPan.ar(Limiter.ar(sig), ~dirt.numChannels, pan));
+	OffsetOut.ar(out, DirtPan.ar(Limiter.ar(sig * globalEnv), ~dirt.numChannels, pan));
 }).add;
 
 ///////////////////////////////////////  Snare
@@ -3408,7 +3409,7 @@ SynthDef(\floatingPointErrors_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0, r
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels));
 }).add;
 
-SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = 0, envPow = 1, segments = 49, xMajor = 10.0, yMajor = 1.0, rMajor = 100.1, rMinor = 1.1, circlefreq = 0.0001, doneAction = 2;
+SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = 0, envPow = 1, tu = 1, segments = 49, xMajor = 10.0, yMajor = 1.0, rMajor = 100.1, rMinor = 1.1, circlefreq = 0.0001, doneAction = 2;
     var sig, xMinor, yMinor, freqs, amps, phase, shuheiKawachi, globalEnv;
 
     shuheiKawachi = { arg x, y, a, b;
@@ -3421,7 +3422,9 @@ SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, releas
 
     globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
 
-    freqs = Array.exprand(49, 50, 1500).sort;
+    // freqs = Array.exprand(49, 50, 1500).sort.debug;
+	freqs = [50.909089430214, 63.608512393358, 65.056484949596, 67.985432742352, 68.449254734715, 71.154462801524, 75.153162666907, 80.159090540174, 88.650405760834, 89.244467136653, 89.787749814836, 94.804318696787, 97.17438072031, 104.06610340747, 105.58273927332, 105.70848787891, 118.14763403707, 122.30357892333, 125.91379530205, 138.19911121285, 157.10948972852, 194.04854760832, 198.76041832049, 198.847779932, 201.92012940761, 230.06225552661, 237.68115421845, 290.73868194269, 293.38951591388, 336.31430916388, 341.91511960964, 349.4171680391, 393.59846721581, 409.2946639466, 413.5242979, 425.15780461208, 465.90490967238, 492.76629119068, 549.91655801867, 645.03288565102, 700.87369257369, 709.96409772057, 716.96599236393, 843.4571242342, 898.23211278398, 1024.3564550409, 1077.5384208642, 1122.7178267914, 1356.4674355527] * tu;
+
     phase = #[0.0]!49;
     //phase = Array.rand(49, 0, 2*pi);
     amps = Array.new;
@@ -3440,6 +3443,94 @@ SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, releas
     /*sig = Pan2.ar(sig, pan, amp);
     OffsetOut.ar(out, sig * globalEnv);*/
     OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp * globalEnv));
+}).add;
+
+SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, selFilt = 3, doneAction = 2;
+    var snd, numInputs, numOutputs, globalEnv;
+    numInputs = 12;
+    numOutputs = 7;
+    snd = LocalIn.ar(numOutputs);
+
+    globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+    // Matrix-vector multiplication using multichannel expansion.
+    snd = snd * ({ { LFNoise2.kr(0.5).round } ! numInputs } ! numOutputs);
+    snd = snd.sum;
+    // If additional modules are added, remember to update numInputs and numOutputs.
+    // numInputs should equal the maximum i in snd[i], plus one.
+    // numOutputs should equal the number of entries in the snd array.
+    snd = [
+        // Oscillator that reaches LFO range
+        SinOsc.ar(snd[0].linexp(-1, 1, 0.1, 8000)),
+        // Oscillator in audio range only
+        SinOsc.ar(snd[1].linexp(-1, 1, 100, 8000)),
+        // Wavefolder with controllable gain
+        (snd[2] * snd[3].linexp(-1, 1, 1, 10)).fold2,
+        // Two filters with controllable cutoff and resonance
+        MoogFF.ar(snd[4], snd[5].linexp(-1, 1, 10, 8000), snd[6].linlin(-1, 1, 0, 4)) * 3.dbamp,
+        MoogFF.ar(snd[7], snd[8].linexp(-1, 1, 10, 8000), snd[9].linlin(-1, 1, 0, 4)) * 3.dbamp,
+        // Metallic reverb (spring reverb in the Easel)
+        FreeVerb.ar(snd[10], mix: 1),
+        // Five-step sequencer
+        Demand.ar(Impulse.ar(snd[11].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
+    ];
+
+    if(snd.size != numOutputs) {
+        Error("Please ensure numOutputs matches number of modules").throw;
+    };
+    snd = Sanitize.ar(snd);
+    LocalOut.ar(snd);
+
+    snd = Select.ar(selFilt.mod(8), snd ++ snd.sum);
+
+    snd = Limiter.ar(LeakDC.ar(snd * globalEnv));
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\rungler_Sd, { arg out = 0, amp = 0.2, pan = 0.3, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, lfoTrigRate = 0.4, tu = 24, ffreq = 24, doneAction = 2;
+    var rungler, lfo, snd, runglerOut, globalEnv;
+
+	globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    lfo = {
+        var trigger;
+        trigger = Dust.ar(lfoTrigRate);
+        Select.ar(ToggleFF.ar(trigger), [
+            LFNoise2.ar(TExpRand.ar(0.5, 10, trigger)),
+            TRand.ar(-1, 1, trigger),
+        ]);
+    };
+
+    rungler = { |dataSignal, clockSignal|
+        var numBits, bits, bit, out, doDAC;
+        doDAC = { |bits|
+            var result;
+            result = bits[0] + (bits[1] * 2) + (bits[2] * 4);
+            result = result / 7;
+            result = (result * 2) - 1;
+            result;
+        };
+        bit = dataSignal > 0;
+        numBits = 8;
+        bits = [];
+        numBits.do {
+            bit = Latch.ar(bit, clockSignal);
+            bits = bits.add(bit);
+            bit = Delay1.ar(bit);
+        };
+        (
+            out: doDAC.(bits[numBits - 3..numBits - 1]),
+            outReverse: doDAC.(bits[numBits - 2..numBits - 4]),
+        );
+    };
+    snd = LocalIn.ar(2);
+    runglerOut = rungler.(snd[0], snd[1]);
+    snd = [runglerOut[\out], runglerOut[\outReverse]];
+    snd = LFTri.ar(({ lfo.() } ! 2).linexp(-1, 1, [10, 1], 8000) * (snd * tu).midiratio);
+    LocalOut.ar(LeakDC.ar(Sanitize.ar(snd)));
+    snd = (snd[0] > snd[1]) - 0.5;
+    snd = MoogFF.ar(snd, ({ lfo.() } ! 2).linexp(-1, 1, 100, 8000) * (runglerOut[\out] * ffreq).midiratio, 3);
+    snd = snd * globalEnv * -10.dbamp;
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
 )
