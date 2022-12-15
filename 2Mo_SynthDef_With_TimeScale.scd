@@ -3445,12 +3445,12 @@ SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, releas
 SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, selFilt = 3, doneAction = 2;
     var snd, numInputs, numOutputs, globalEnv;
     numInputs = 12;
-    numOutputs = 7;
+    numOutputs = 6;
     snd = LocalIn.ar(numOutputs);
 
     globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
     // Matrix-vector multiplication using multichannel expansion.
-    snd = snd * ({ { LFNoise2.kr(0.5).round } ! numInputs } ! numOutputs);
+    snd = snd * ({ { LFNoise2.kr(0.5)/*.round*/ } ! numInputs } ! numOutputs);
     snd = snd.sum;
     // If additional modules are added, remember to update numInputs and numOutputs.
     // numInputs should equal the maximum i in snd[i], plus one.
@@ -3466,9 +3466,9 @@ SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release =
         MoogFF.ar(snd[4], snd[5].linexp(-1, 1, 10, 8000), snd[6].linlin(-1, 1, 0, 4)) * 3.dbamp,
         MoogFF.ar(snd[7], snd[8].linexp(-1, 1, 10, 8000), snd[9].linlin(-1, 1, 0, 4)) * 3.dbamp,
         // Metallic reverb (spring reverb in the Easel)
-        FreeVerb.ar(snd[10], mix: 1),
+        FreeVerb.ar(snd[10], mix: 1)
         // Five-step sequencer
-        Demand.ar(Impulse.ar(snd[11].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
+        // Demand.ar(Impulse.ar(snd[11].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
     ];
 
     if(snd.size != numOutputs) {
@@ -3477,7 +3477,55 @@ SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release =
     snd = Sanitize.ar(snd);
     LocalOut.ar(snd);
 
-    snd = Select.ar(selFilt.mod(8), snd ++ snd.sum);
+    snd = Select.ar(selFilt.mod(7), snd ++ snd.sum);
+
+    snd = Limiter.ar(LeakDC.ar(snd * globalEnv));
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\easelDeter_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, lfRate = 7, lfPhase = (-2), selSnd = 3, rotate = 0, doneAction = 2;
+    var snd, numInputs, numOutputs, globalEnv;
+    numInputs = 6;
+    numOutputs = 6;
+    snd = LocalIn.ar(numOutputs);
+
+    globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    // Matrix-vector multiplication using multichannel expansion.
+    snd = snd * ({arg j;
+		{ arg i;
+			var offset = i;
+			if(i.odd, { offset = i.neg; });
+			LFGauss.ar((lfRate + (offset * j)).reciprocal, 0.1, (i + j + lfPhase.round) * pi).round;
+		} ! numInputs
+	} ! numOutputs);
+
+    snd = snd.sum;
+
+    // If additional modules are added, remember to update numInputs and numOutputs.
+    // numInputs should equal the maximum i in snd[i], plus one.
+    // numOutputs should equal the number of entries in the snd array.
+    snd = [
+        // Oscillator that reaches LFO range
+        SinOsc.ar(snd[0].linexp(-1, 1, 0.1, 8000)),
+        // Oscillator in audio range only
+        SinOsc.ar(snd[4].linexp(-1, 1, 100, 8000)),
+        // Wavefolder with controllable gain
+        (snd[2] * snd[3].linexp(-1, 1, 1, 8)).fold2,
+        // Two filters with controllable cutoff and resonance
+        MoogFF.ar(snd[4], snd[5].linexp(-1, 1, 10, 8000), snd[0].linlin(-1, 1, 0, 4)) * 3.dbamp,
+        MoogFF.ar(snd[1], snd[2].linexp(-1, 1, 10, 8000), snd[3].linlin(-1, 1, 0, 4)) * 3.dbamp,
+        // Five-step sequencer
+        Demand.ar(Impulse.ar(snd[5].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
+    ];
+
+    if(snd.size != numOutputs) {
+        Error("Please ensure numOutputs matches number of modules").throw;
+    };
+    snd = Sanitize.ar(snd);
+    LocalOut.ar(snd);
+
+    snd = Select.ar(selSnd.mod(7), snd ++ snd.sum);
 
     snd = Limiter.ar(LeakDC.ar(snd * globalEnv));
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
@@ -3494,6 +3542,56 @@ SynthDef(\rungler_Sd, { arg out = 0, amp = 0.2, pan = 0.3, attack = 0.001, relea
         Select.ar(ToggleFF.ar(trigger), [
             LFNoise2.ar(TExpRand.ar(0.5, 10, trigger)),
             TRand.ar(-1, 1, trigger),
+        ]);
+    };
+
+    rungler = { |dataSignal, clockSignal|
+        var numBits, bits, bit, out, doDAC;
+        doDAC = { |bits|
+            var result;
+            result = bits[0] + (bits[1] * 2) + (bits[2] * 4);
+            result = result / 7;
+            result = (result * 2) - 1;
+            result;
+        };
+        bit = dataSignal > 0;
+        numBits = 8;
+        bits = [];
+        numBits.do {
+            bit = Latch.ar(bit, clockSignal);
+            bits = bits.add(bit);
+            bit = Delay1.ar(bit);
+        };
+        (
+            out: doDAC.(bits[numBits - 3..numBits - 1]),
+            outReverse: doDAC.(bits[numBits - 2..numBits - 4]),
+        );
+    };
+    snd = LocalIn.ar(2);
+    runglerOut = rungler.(snd[0], snd[1]);
+    snd = [runglerOut[\out], runglerOut[\outReverse]];
+    snd = LFTri.ar(({ lfo.() } ! 2).linexp(-1, 1, [10, 1], 8000) * (snd * tu).midiratio);
+    LocalOut.ar(LeakDC.ar(Sanitize.ar(snd)));
+    snd = (snd[0] > snd[1]) - 0.5;
+    snd = MoogFF.ar(snd, ({ lfo.() } ! 2).linexp(-1, 1, 100, 8000) * (runglerOut[\out] * ffreq).midiratio, 3);
+    snd = snd * globalEnv * -10.dbamp;
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\runglerDeter_Sd, { arg out = 0, amp = 0.2, pan = 0.3, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, lfSrc1Sel = 0, lfSrc1Rate = 0.7, lfSrc2Sel = 1, lfSrc2Rate = 0.24, switchSrcRate = 0.4, tu = 24, ffreq = 24, doneAction = 2;
+    var rungler, lfo, lfSource1, lfSource2, snd, runglerOut, globalEnv;
+
+	globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+	lfSource1 = Select.ar(lfSrc1Sel.round.mod(5), [BlitB3Tri.ar(lfSrc1Rate), DPW4Saw.ar(lfSrc1Rate), SinOsc.ar(lfSrc1Rate), LFCub.ar(lfSrc1Rate), LFGauss.ar(lfSrc1Rate)]);
+	lfSource2 = Select.ar(lfSrc2Sel.round.mod(5), [BlitB3Tri.ar(lfSrc2Rate), DPW4Saw.ar(lfSrc2Rate), SinOsc.ar(lfSrc2Rate), LFCub.ar(lfSrc2Rate), LFGauss.ar(lfSrc2Rate)]);
+
+    lfo = {
+        var trigger;
+        trigger = Impulse.ar(switchSrcRate);
+        Select.ar(ToggleFF.ar(trigger), [
+            lfSource1,
+            lfSource2
         ]);
     };
 
