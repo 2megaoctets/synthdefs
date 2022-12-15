@@ -3519,12 +3519,12 @@ SynthDef(\circSegs_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, releas
 SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, selSnd = 3, doneAction = 2;
     var snd, numInputs, numOutputs, globalEnv;
     numInputs = 12;
-    numOutputs = 7;
+    numOutputs = 6;
     snd = LocalIn.ar(numOutputs);
 
     globalEnv = EnvGen.ar(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
     // Matrix-vector multiplication using multichannel expansion.
-    snd = snd * ({ { LFNoise2.kr(0.5).round } ! numInputs } ! numOutputs);
+    snd = snd * ({ { LFNoise2.kr(0.5)/*.round*/ } ! numInputs } ! numOutputs);
     snd = snd.sum;
     // If additional modules are added, remember to update numInputs and numOutputs.
     // numInputs should equal the maximum i in snd[i], plus one.
@@ -3540,9 +3540,9 @@ SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release =
         MoogFF.ar(snd[4], snd[5].linexp(-1, 1, 10, 8000), snd[6].linlin(-1, 1, 0, 4)) * 3.dbamp,
         MoogFF.ar(snd[7], snd[8].linexp(-1, 1, 10, 8000), snd[9].linlin(-1, 1, 0, 4)) * 3.dbamp,
         // Metallic reverb (spring reverb in the Easel)
-        FreeVerb.ar(snd[10], mix: 1),
+        FreeVerb.ar(snd[10], mix: 1)
         // Five-step sequencer
-        Demand.ar(Impulse.ar(snd[11].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
+        // Demand.ar(Impulse.ar(snd[11].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
     ];
 
     if(snd.size != numOutputs) {
@@ -3551,7 +3551,7 @@ SynthDef(\easel_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, release =
     snd = Sanitize.ar(snd);
     LocalOut.ar(snd);
 
-    snd = Select.ar(selSnd.mod(8), snd ++ snd.sum);
+    snd = Select.ar(selSnd.mod(7), snd ++ snd.sum);
 
     snd = Limiter.ar(LeakDC.ar(snd * globalEnv));
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
@@ -3589,6 +3589,7 @@ SynthDef(\easelDeter_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, rele
         // Two filters with controllable cutoff and resonance
         MoogFF.ar(snd[4], snd[5].linexp(-1, 1, 10, 8000), snd[0].linlin(-1, 1, 0, 4)) * 3.dbamp,
         MoogFF.ar(snd[1], snd[2].linexp(-1, 1, 10, 8000), snd[3].linlin(-1, 1, 0, 4)) * 3.dbamp,
+		// FreeVerb.ar(snd[0], mix: 1),
         // Five-step sequencer
         Demand.ar(Impulse.ar(snd[5].linexp(-1, 1, 0.1, 1000)), 0, Dseq([0.1, 0.5, 0.9, 0.3, 0.4]))
     ];
@@ -3599,7 +3600,7 @@ SynthDef(\easelDeter_Sd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.001, rele
     snd = Sanitize.ar(snd);
     LocalOut.ar(snd);
 
-    snd = Select.ar(selSnd.mod(8), snd ++ snd.sum);
+    snd = Select.ar(selSnd.mod(7), snd ++ snd.sum);
 
     snd = Limiter.ar(LeakDC.ar(snd * globalEnv));
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
