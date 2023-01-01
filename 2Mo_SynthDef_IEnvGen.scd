@@ -1,7 +1,7 @@
 // https://github.com/v7b1/mi-UGens
 
 (
-SynthDef(\braids, {|out=0,freq=440,sustain=1,pan=0,begin=0,end=1,speed=1,accelerate=0,timbre=0.5,color=0.5,model=0|
+SynthDef(\braids, {|out = 0, amp = 0.3, pan = 0, sustain = 1, begin = 0, end = 1, freq = 440, speed = 1, accelerate = 0, timbre = 0.5, color = 0.5, model = 0|
 	var envLength = sustain*(end-begin)/speed;
 	var line = Line.ar(begin, end, envLength, doneAction: Done.freeSelf);
 	var env = Env.asr;
@@ -11,7 +11,7 @@ SynthDef(\braids, {|out=0,freq=440,sustain=1,pan=0,begin=0,end=1,speed=1,acceler
 	freq = max(0, freq * speed * (1 + (accelerate * line)));
 	sig = MiBraids.ar(pitch: freq.cpsmidi, timbre: timbre, color: color, model: model);
 
-	OffsetOut.ar(out, DirtPan.ar(sig * volume, ~dirt.numChannels, pan));
+	OffsetOut.ar(out, DirtPan.ar(sig * amp * volume, ~dirt.numChannels, pan));
 }).add;
 );
 
