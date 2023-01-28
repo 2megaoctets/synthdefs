@@ -24,9 +24,7 @@
 		]
 	)
 }, {~elementsstrength.notNil});
-);
 
-(
 SynthDef("elements" ++ ~dirt.numChannels, {|out,freq=440,sustain=1,pan=0,begin=0,end=1,speed=1,accelerate=0,
 	elementspitch=48, elementsstrength=0.5, elementscontour=0.2, elementsbowlevel=0,elementsblowlevel=0, elementsstrikelevel=0,
 	elementsflow=0.5, elementsmallet=0.5, elementsbowtimb=0.5, elementsblowtimb=0.5,
@@ -57,24 +55,18 @@ SynthDef("elements" ++ ~dirt.numChannels, {|out,freq=440,sustain=1,pan=0,begin=0
 		easteregg: elementseasteregg
 	));
 }).add;
-);
 
-(
 ~dirt.addModule('mu', { |dirtEvent|
 	dirtEvent.sendSynth('mu' ++ ~dirt.numChannels,
 		[ mu: ~mu, out: ~out ]
 	)
 }, {~mu.notNil});
-);
 
-(
 SynthDef("mu" ++ ~dirt.numChannels, {|out,mu=0|
 	var signal = In.ar(out, ~dirt.numChannels);
 	ReplaceOut.ar(out, MiMu.ar(signal, mu));
 }).add;
-);
 
-(
 ~dirt.addModule('rings', { |dirtEvent|
 	dirtEvent.sendSynth('rings' ++ ~dirt.numChannels,
 		[
@@ -92,29 +84,25 @@ SynthDef("mu" ++ ~dirt.numChannels, {|out,mu=0|
 		]
 	)
 }, {~ringsbright.notNil});
-);
 
-(
 SynthDef("rings" ++ ~dirt.numChannels, { |out, ringsfreq=440,ringsstruct=0,ringsbright=0,ringsdamp=0.5,ringspos=0,ringsmodel=0,ringspoly=0,ringsinternal=0,ringseasteregg=0,ringsbypass=0|
 	var signal = In.ar(out, ~dirt.numChannels);
 	signal = MiRings.ar(
-    signal,
-    trig: ringsinternal,
-    pit: ringsfreq.cpsmidi,
-    struct: ringsstruct,
-    bright: ringsbright,
-    damp: ringsdamp,
-    pos: ringspos,
-    model: ringsmodel,
-    poly: ringspoly,
-    intern_exciter: ringsinternal,
-    easteregg: ringseasteregg
-  );
-  ReplaceOut.ar(out, signal)
+		signal,
+		trig: ringsinternal,
+		pit: ringsfreq.cpsmidi,
+		struct: ringsstruct,
+		bright: ringsbright,
+		damp: ringsdamp,
+		pos: ringspos,
+		model: ringsmodel,
+		poly: ringspoly,
+		intern_exciter: ringsinternal,
+		easteregg: ringseasteregg
+	);
+	ReplaceOut.ar(out, signal)
 }).add;
-);
 
-(
 ~dirt.addModule('ripples', { |dirtEvent|
 	dirtEvent.sendSynth('ripples' ++ ~dirt.numChannels,
 		[
@@ -125,9 +113,7 @@ SynthDef("rings" ++ ~dirt.numChannels, { |out, ringsfreq=440,ringsstruct=0,rings
 		]
 	)
 }, {~ripplescf.notNil});
-);
 
-(
 SynthDef("ripples" ++ ~dirt.numChannels, { |out, ripplescf=0, ripplesreson=0, ripplesdrive=1|
 	var signal = In.ar(out, ~dirt.numChannels);
 	signal = MiRipples.ar(
@@ -138,9 +124,7 @@ SynthDef("ripples" ++ ~dirt.numChannels, { |out, ripplescf=0, ripplesreson=0, ri
 	);
 	ReplaceOut.ar(out, signal)
 }).add;
-);
 
-(
 ~dirt.addModule('warps', { |dirtEvent|
 	dirtEvent.sendSynth('warps' ++ ~dirt.numChannels,
 		[
@@ -154,9 +138,7 @@ SynthDef("ripples" ++ ~dirt.numChannels, { |out, ripplescf=0, ripplesreson=0, ri
 		]
 	)
 }, {~warpsalgo.notNil});
-);
 
-(
 SynthDef("warps" ++ ~dirt.numChannels, { |out, warpsalgo=0, warpstimb=0, warpsosc=1, warpsfreq=440, warpsvgain=1, warpseasteregg=0|
 	var signal = In.ar(out, ~dirt.numChannels);
 	signal = MiWarps.ar(
@@ -172,9 +154,7 @@ SynthDef("warps" ++ ~dirt.numChannels, { |out, warpsalgo=0, warpstimb=0, warpsos
 	);
 	ReplaceOut.ar(out, signal)
 }).add;
-);
 
-(
 ~dirt.addModule('mi_verb', { |dirtEvent|
 	dirtEvent.sendSynth('mi_verb' ++ ~dirt.numChannels,
 		[
@@ -189,24 +169,20 @@ SynthDef("warps" ++ ~dirt.numChannels, { |out, warpsalgo=0, warpstimb=0, warpsos
 		]
 	)
 }, {~verbwet.notNil});
-);
 
-(
 SynthDef("mi_verb" ++ ~dirt.numChannels, { |out, verbwet=0, verbtime=0, verbdamp=0, verbhp=0, verbfreeze=0, verbdiff=0.625, verbgain=1|
-    var signal = In.ar(out, ~dirt.numChannels);
-    ReplaceOut.ar(out, MiVerb.ar(
-      signal,
-      verbtime,
-      verbwet,
-      verbdamp,
-      verbhp,
-      verbfreeze,
-      verbdiff
-    ) * verbgain);
-  }, [\ir]).add;
-);
+	var signal = In.ar(out, ~dirt.numChannels);
+	ReplaceOut.ar(out, MiVerb.ar(
+		signal,
+		verbtime,
+		verbwet,
+		verbdamp,
+		verbhp,
+		verbfreeze,
+		verbdiff
+	) * verbgain);
+}, [\ir]).add;
 
-(
 ~dirt.addModule('mi_clouds', { |dirtEvent|
 	dirtEvent.sendSynth('mi_clouds' ++ ~dirt.numChannels,
 		[
@@ -227,26 +203,25 @@ SynthDef("mi_verb" ++ ~dirt.numChannels, { |out, verbwet=0, verbtime=0, verbdamp
 		]
 	)
 }, {~cloudspitch.notNil});
-);
 
-(
-  SynthDef("mi_clouds" ++ ~dirt.numChannels, { |out, cloudspitch=0, cloudspos=0, cloudssize=0, cloudsdens=0, cloudstex=0, cloudswet=0, cloudsgain=3, cloudsspread=0, cloudsrvb=0, cloudsfb=0, cloudsfreeze=0, cloudsmode=0, cloudslofi=0|
-    var signal = In.ar(out, ~dirt.numChannels);
-    ReplaceOut.ar(out, MiClouds.ar(
-      inputArray: signal,
-      pit: cloudspitch,
-      pos: cloudspos,
-      size: cloudssize,
-      dens: cloudsdens,
-      tex: cloudstex,
-      drywet: cloudswet,
-      in_gain: cloudsgain,
-      spread: cloudsspread,
-      rvb: cloudsrvb,
-      fb: cloudsfb,
-      freeze: cloudsfreeze,
-      mode: cloudsmode,
-      lofi: cloudslofi
-    ));
-  }, [\ir]).add;
-);
+SynthDef("mi_clouds" ++ ~dirt.numChannels, { |out, cloudspitch=0, cloudspos=0, cloudssize=0, cloudsdens=0, cloudstex=0, cloudswet=0, cloudsgain=3, cloudsspread=0, cloudsrvb=0, cloudsfb=0, cloudsfreeze=0, cloudsmode=0, cloudslofi=0|
+	var signal = In.ar(out, ~dirt.numChannels);
+	ReplaceOut.ar(out, MiClouds.ar(
+		inputArray: signal,
+		pit: cloudspitch,
+		pos: cloudspos,
+		size: cloudssize,
+		dens: cloudsdens,
+		tex: cloudstex,
+		drywet: cloudswet,
+		in_gain: cloudsgain,
+		spread: cloudsspread,
+		rvb: cloudsrvb,
+		fb: cloudsfb,
+		freeze: cloudsfreeze,
+		mode: cloudsmode,
+		lofi: cloudslofi
+	));
+}, [\ir]).add;
+
+)
