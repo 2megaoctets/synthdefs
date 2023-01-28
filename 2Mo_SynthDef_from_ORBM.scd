@@ -4494,6 +4494,19 @@ SynthDef(\lazaerSd, { arg out = 0, amp = 0.03, pan = 0, doneAction = 2;
     OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\hooverSd, { arg out = 0, amp = 0.2, pan = 0, atk = 0, stn = 1.0, rls = 4, crv = 6, frq = 440, envfL1 = (-5), envfL2 = 6, envfL3 = 0, envfT1 = 0.1, envfT2 = 1.7, crvf1 = 0, crvf2 = (-4), bw = 1.035, doneAction = 2;
+    var snd;
+    frq = frq * Env([envfL1, envfL2, envfL3], [envfT1, envfT2], [crvf1, crvf2]).kr.midiratio;
+    snd = { DelayN.ar(Saw.ar(frq * ExpRand(bw, 1 / bw)) + Saw.ar(frq * 0.5 * ExpRand(bw, 1 / bw)), 0.01, Rand(0, 0.01)) }.dup(20);
+    snd = (Splay.ar(snd) * 3).atan;
+    snd = snd * Env.asr(0.01, 1.0, 1.0).kr(0);
+    snd = FreeVerb2.ar(snd[0], snd[1], 0.3, 0.9);
+    snd = snd * Env.asr(atk, stn, rls, crv).kr(doneAction);
+    /*snd = Balance2.ar(snd[0], snd[1], pan, amp);
+    OffsetOut.ar(out, snd);*/
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Sequence
 
 SynthDef(\virgoSd, { arg out = 0, amp = 0.2, pan = 0, attack = 0.01, release = 1, feedback = 7.5, freq1 = 32, freq2 = 33, delaytime = 2, decaytime = 40, gate = 1, doneAction = 2;
