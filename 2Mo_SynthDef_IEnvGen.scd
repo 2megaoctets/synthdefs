@@ -92,7 +92,7 @@ SynthDef(\Sd_hoover, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spee
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, sdm = 1, mod = 0.005, from = 9, to = 12, min = 0.1, max = 0.3, doneAction = 2|
+SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, modSin = 0.4, from = 9, to = 12, minSeq = 0.1, maxSeq = 0.3, doneAction = 2|
     var sig, sd = SampleDur.ir * sdm, hpf=40, mf=1.0;
 	var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
@@ -101,9 +101,9 @@ SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed
 
     sig = HPF.ar(
         DemandEnvGen.ar(
-            Dseq([min, min.neg, [max.neg, max]], inf),
+            Dseq([minSeq, minSeq.neg, [maxSeq.neg, maxSeq]], inf),
             sd * Dseq([Lag.kr(from), Lag.kr(to), Dbrown(from, to, to, from.neg, from)], inf)
-        ).fold2(SinOsc.ar(mod)) * mf,
+        ).fold2(SinOsc.ar(modSin)) * mf,
         hpf
     );
     sig = sig * globalEnv;
@@ -112,7 +112,7 @@ SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, sdm = 1, repeats = 32, from = 8, to = 30, min = 0.1, max = 0.9, doneAction = 2|
+SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, repeats = 32, from = 8, to = 30, doneAction = 2|
     var sig, sd = SampleDur.ir * sdm, mf=0.2;
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
@@ -138,11 +138,11 @@ SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, spe
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet3, {|out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, step = 2, start = 1, from = 2, to = 5, sdm = 0.2, min = 0.1, max = 0.9, brownStep = 0.01, doneAction = 2|
+SynthDef(\Sd_stochadiet3, {|out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, timeStep = 2, start = 1, from = 2, to = 5, sdm = 0.2, minLev = 0.1, maxLev = 0.9, brownStep = 0.01, doneAction = 2|
     var sig, iter = 2, sd = SampleDur.ir * [sdm, sdm * 1.1], mf = 0.08;
-    var levels = ({ Dseries(rrand(min.neg, max.neg), rrand(min, max), from * rrand(from, to)) } ! iter) ++
-    ({ Dbrown(rrand(min.neg, max.neg), rrand(min, max), brownStep, to * 2) } ! iter);
-    var times = { Dseries(rrand(start, start * 2), rrand(step, step * 2), rrand(from * 5, to * 4)) } ! (iter * 2);
+    var levels = ({ Dseries(rrand(minLev.neg, maxLev.neg), rrand(minLev, maxLev), from * rrand(from, to)) } ! iter) ++
+    ({ Dbrown(rrand(minLev.neg, maxLev.neg), rrand(minLev, maxLev), brownStep, to * 2) } ! iter);
+    var times = { Dseries(rrand(start, start * 2), rrand(timeStep, timeStep * 2), rrand(from * 5, to * 4)) } ! (iter * 2);
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
     var env = Env.asr;
@@ -158,7 +158,7 @@ SynthDef(\Sd_stochadiet3, {|out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet4, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, sdm = 1, repeats = 4, from = 5, to = 18, mod = 60, doneAction = 2|
+SynthDef(\Sd_stochadiet4, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, repeats = 4, from = 5, to = 18, sinMod = 60, doneAction = 2|
     var sig, length = 30, sd = SampleDur.ir * sdm, mf = 0.3;
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
@@ -171,14 +171,14 @@ SynthDef(\Sd_stochadiet4, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed
             Dwhite(from, to, repeats),
             Dwhite(from / 1.5, to * 3, repeats)
         ], inf) * sd
-    ).clip(SinOsc.ar(mod)) * mf;
+    ).clip(SinOsc.ar(sinMod)) * mf;
     sig = sig * globalEnv;
     /*sig = Balance2.ar(sig[0], sig[1], pan, amp);
     OffsetOut.ar(out, sig);*/
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet5, {|out = 0, amp = 0.4, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, filtSpeed = 10, filtCenter = 200, sdm = 1, modFreq = 0.01, filtBw = 3, lpf = 2500, doneAction = 2|
+SynthDef(\Sd_stochadiet5, {|out = 0, amp = 0.4, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, filtSpeed = 10, filtCenter = 200, sdm = 1, modFreq = 0.01, filtBw = 3, doneAction = 2|
     var sig, size = 3, from = 1, to = 25, a = 9, b = 5, min = 0.1, max = 0.3;
     var sd = SampleDur.ir * sdm;
     var envLength = sustain * (end - begin) / speed;
