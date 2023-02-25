@@ -2,18 +2,6 @@
 
 (
 
-/*SynthDef(\Sd_template, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, doneAction = 2;
-    var sig;
-	var envLength = sustain * (end - begin) / speed;
-    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
-    var env = Env.asr;
-    var globalEnv = IEnvGen.ar(env, line);
-
-	freq = max(0, freq * speed * (1 + (accelerate * line)));
-
-	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
-}).add;*/
-
 SynthDef(\braids, {|out = 0, amp = 0.3, pan = 0, sustain = 1, begin = 0, end = 1, freq = 440, speed = 1, accelerate = 0, timbre = 0.5, color = 0.5, model = 0|
 	var envLength = sustain*(end-begin)/speed;
 	var line = Line.ar(begin, end, envLength, doneAction: Done.freeSelf);
@@ -447,5 +435,135 @@ SynthDef(\Sd_tubularBell, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1,
 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
+
+SynthDef(\Sd_snapkick, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 1, bdFrqL1 = 261, bdFrqL2 = 120, bdFrqL3 = 51, bdFrqT1 = 0.035, bdFrqT2 = 0.08, bdFrqC = (-4), bdAmpAtt = 0.005, bdAmpSus = 0.1, bdAmpRel = 0.3, bdAmpLev = 1, bdAmpCurve = 1, popFrqSt = 750, popFrqEnd = 261, popFrqDur = 0.02, popAmpAtt = 0.001, popAmpSus = 0.02, popAmpRel = 0.001, popAmpLev = 0.15, clkAmpAtt = 0.001, clkAmpRel = 0.01, clkAmpLev = 0.15, clkAmpCurve = (-4), clkfFundFreq = 910, clkfFormFreq = 4760, clkfBwFreq = 2110, clkLpfFreq = 3140, doneAction = 2;
+    var sig, bodyFreq, bodyAmp, body, popFreq, popAmp, pop, clickAmp, click;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+
+	bodyFreq = EnvGen.ar(Env([bdFrqL1, bdFrqL2, bdFrqL3], [bdFrqT1, bdFrqT2], bdFrqC)) * freq;
+	bodyAmp = EnvGen.ar(Env.linen(bdAmpAtt, bdAmpSus, bdAmpRel, bdAmpLev, bdAmpCurve));
+	body = SinOsc.ar(bodyFreq) * bodyAmp;
+	// pop sweeps over the midrange
+	popFreq = XLine.kr(popFrqSt, popFrqEnd, popFrqDur) * freq;
+	popAmp = EnvGen.ar(Env.linen(popAmpAtt, popAmpSus, popAmpRel, popAmpLev));
+	pop = SinOsc.ar(popFreq) * popAmp;
+	// click is spectrally rich, covering the high-freq range
+	// you can use Formant, FM, noise, whatever
+	clickAmp = EnvGen.ar(Env.perc(clkAmpAtt, clkAmpRel, clkAmpLev, clkAmpCurve));
+	click = LPF.ar(Formant.ar(clkfFundFreq * freq, clkfFormFreq, clkfBwFreq), clkLpfFreq) * clickAmp;
+
+	sig = body + pop + click;
+	sig = sig.tanh * globalEnv;
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_waveguideFlute, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, scl = 0.2, ipress = 0.9, ibreath = 0.09, ifeedbk1 = 0.4, ifeedbk2 = 0.4, dur = 1, doneAction = 2;
+    var signalOut;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	var ifqc = max(0, freq * speed * (1 + (accelerate * line)));
+
+	var sr = SampleRate.ir;
+	var cr = ControlRate.ir;
+	var block = cr.reciprocal;
+
+	// noise envelope
+	var kenv1 = EnvGen.kr(Env.new(
+		[ 0.0, 1.1 * ipress, ipress, ipress, 0.0 ], [ 0.06, 0.2, dur - 0.46, 0.2 ], 'linear' )
+	);
+
+	// vibrato envelope
+	var kenvibr = EnvGen.kr(Env.new( [ 0.0, 0.0, 1, 1, 0.0 ], [ 0.5, 0.5, dur - 1.5, 0.5 ], 'linear') );
+
+	// create air flow and vibrato
+	var aflow1 = LFClipNoise.ar( sr, kenv1 );
+	var kvibr = SinOsc.ar( 5, 0, 0.1 * kenvibr );
+
+	var asum1 = ( ibreath * aflow1 ) + kenv1 + kvibr;
+	var afqc = ifqc.reciprocal - ( asum1/20000 ) - ( 9/sr ) + ( ifqc/12000000 ) - block;
+
+	var fdbckArray = LocalIn.ar( 1 );
+
+	var aflute1 = fdbckArray;
+	var asum2 = asum1 + ( aflute1 * ifeedbk1 );
+
+	//ax = DelayL.ar( asum2, ifqc.reciprocal * 0.5, afqc * 0.5 );
+	var ax = DelayC.ar( asum2, ifqc.reciprocal - block * 0.5, afqc * 0.5 - ( asum1/ifqc/cr ) + 0.001 );
+
+	var apoly = ax - ( ax.cubed );
+	var asum3 = apoly + ( aflute1 * ifeedbk2 );
+	var avalue = LPF.ar( asum3, 2000 );
+
+	aflute1 = DelayC.ar( avalue, ifqc.reciprocal - block, afqc );
+
+	fdbckArray = [ aflute1 ];
+
+	LocalOut.ar( fdbckArray );
+
+	signalOut = avalue;
+
+	OffsetOut.ar(out, DirtPan.ar(signalOut * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_kick_oto309, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 1, env0L1 = 0.5, env0L2 = 1, env0L3 = 0.5, env0L4 = 0, env0T1 = 0.005, env0T2 = 0.06, env0T3 = 0.26, env0Crv1 = (-4), env0Crv2 = (-2), env0Crv3 = (-4), env1L1 = 110, env1L2 = 59, env1L3 = 29, env1T1 = 0.005, env1T2 = 0.29, env1Crv1 = (-4), env1Crv2 = (-5), doneAction = 2;
+    var son, env0, env1, env1m;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+
+	env0 =  EnvGen.ar(Env.new([env0L1, env0L2, env0L3, env0L4], [env0T1, env0T2, env0T3], [env0Crv1, env0Crv2, env0Crv3]));
+	env1 = EnvGen.ar(Env.new([env1L1, env1L2, env1L3], [env1T1, env1T2], [env1Crv1, env1Crv2])) * freq;
+	env1m = env1.midicps;
+
+	son = LFPulse.ar(env1m, 0, 0.5, 1, -0.5);
+	son = son + WhiteNoise.ar(1);
+	son = LPF.ar(son, env1m*1.5, env0);
+	son = son + SinOsc.ar(env1m, 0.5, env0);
+
+	son = son * 1.2 * globalEnv;
+	son = son.clip2(1);
+
+	OffsetOut.ar(out, DirtPan.ar(son * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_cymnew, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 6, doneAction = 2;
+    var sig, freqs;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+
+	freqs = geom(99,40,pi/3) * 10.234567 * freq;
+	sig = WhiteNoise.ar(0.2);
+	sig = Ringz.ar(sig,freqs,1).mean;
+
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+/*SynthDef(\Sd_template, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, doneAction = 2;
+    var sig;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;*/
 
 )
