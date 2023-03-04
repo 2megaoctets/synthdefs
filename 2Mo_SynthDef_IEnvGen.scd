@@ -92,17 +92,19 @@ SynthDef(\Sd_hoover, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spee
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, modSin = 0.4, from = 9, to = 12, minSeq = 0.1, maxSeq = 0.3, doneAction = 2|
-    var sig, sd = SampleDur.ir * sdm, hpf=40, mf=1.0;
+SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, modSin = 0.4, from = 9, dest = 12, minSeq = 0.1, maxSeq = 0.3, doneAction = 2|
+    var sig, sd, hpf=40, mf=1.0;
 	var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
     var env = Env.asr;
     var globalEnv = IEnvGen.ar(env, line);
+	sdm = sdm.max(0.1);
+	sd = SampleDur.ir * sdm;
 
     sig = HPF.ar(
         DemandEnvGen.ar(
             Dseq([minSeq, minSeq.neg, [maxSeq.neg, maxSeq]], inf),
-            sd * Dseq([Lag.kr(from), Lag.kr(to), Dbrown(from, to, to, from.neg, from)], inf)
+            sd * Dseq([Lag.kr(from), Lag.kr(dest), Dbrown(from, dest, dest, from.neg, from)], inf)
         ).fold2(SinOsc.ar(modSin)) * mf,
         hpf
     );
@@ -112,12 +114,18 @@ SynthDef(\Sd_stochadiet1, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, repeats = 32, from = 8, to = 30, doneAction = 2|
-    var sig, sd = SampleDur.ir * sdm, mf=0.2;
+// corriger args to en dest
+
+SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, repeats = 32, from = 8, dest = 30, doneAction = 2|
+    var sig, sd, mf=0.2;
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
     var env = Env.asr;
     var globalEnv = IEnvGen.ar(env, line);
+	sdm = sdm.max(0.1);
+	sd = SampleDur.ir * sdm;
+
+	repeats = repeats.max(1);
 
     sig = DemandEnvGen.ar(
         Dseq([
@@ -127,9 +135,9 @@ SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, spe
             Dseq([-0.8, 0.1], repeats / 16)
         ], inf),
         Dseq([
-            Dwhite(from, to, [repeats, repeats * 0.5]),
-            Dwhite(from / 1.5, to / 1.5, [repeats, repeats * 2]),
-            Dbrown(from / 10, to / 10, from / 20, [repeats, repeats * 0.25])
+            Dwhite(from, dest, [repeats, repeats * 0.5]),
+            Dwhite(from / 1.5, dest / 1.5, [repeats, repeats * 2]),
+            Dbrown(from / 10, dest / 10, from / 20, [repeats, repeats * 0.25])
         ], inf) * sd
     ) * mf;
     sig = sig * globalEnv;
@@ -138,15 +146,17 @@ SynthDef(\Sd_stochadiet2, {|out = 0, amp = 0.5, pan = 0, begin = 0, end = 1, spe
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet3, {|out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, timeStep = 2, start = 1, from = 2, to = 5, sdm = 0.2, minLev = 0.1, maxLev = 0.9, brownStep = 0.01, doneAction = 2|
-    var sig, iter = 2, sd = SampleDur.ir * [sdm, sdm * 1.1], mf = 0.08;
-    var levels = ({ Dseries(rrand(minLev.neg, maxLev.neg), rrand(minLev, maxLev), from * rrand(from, to)) } ! iter) ++
-    ({ Dbrown(rrand(minLev.neg, maxLev.neg), rrand(minLev, maxLev), brownStep, to * 2) } ! iter);
-    var times = { Dseries(rrand(start, start * 2), rrand(timeStep, timeStep * 2), rrand(from * 5, to * 4)) } ! (iter * 2);
+SynthDef(\Sd_stochadiet3, {|out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, timeStep = 2, start = 1, from = 2, dest = 5, sdm = 0.2, minLev = 0.1, maxLev = 0.9, brownStep = 0.01, doneAction = 2|
+    var sig, iter = 2, sd, mf = 0.08;
+    var levels = ({ Dseries(rrand(minLev.neg, maxLev.neg), rrand(minLev, maxLev), from * rrand(from, dest)) } ! iter) ++
+    ({ Dbrown(rrand(minLev.neg, maxLev.neg), rrand(minLev, maxLev), brownStep, dest * 2) } ! iter);
+    var times = { Dseries(rrand(start, start * 2), rrand(timeStep, timeStep * 2), rrand(from * 5, dest * 4)) } ! (iter * 2);
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
     var env = Env.asr;
     var globalEnv = IEnvGen.ar(env, line);
+	sdm = sdm.max(0.1);
+	sd = SampleDur.ir * [sdm, sdm * 1.1];
 
     sig = DemandEnvGen.ar(
         Dseq(levels, inf),
@@ -158,18 +168,20 @@ SynthDef(\Sd_stochadiet3, {|out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_stochadiet4, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, repeats = 4, from = 5, to = 18, sinMod = 60, doneAction = 2|
-    var sig, length = 30, sd = SampleDur.ir * sdm, mf = 0.3;
+SynthDef(\Sd_stochadiet4, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, sdm = 1, repeats = 4, from = 5, dest = 18, sinMod = 60, doneAction = 2|
+    var sig, length = 30, sd, mf = 0.3;
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
     var env = Env.asr;
     var globalEnv = IEnvGen.ar(env, line);
+	sdm = sdm.max(0.1);
+	sd = SampleDur.ir * sdm;
 
     sig = DemandEnvGen.ar(
         Dseq([Dseries(-1.0, [0.04, 0.09], 30)], inf),
         Dseq([
-            Dwhite(from, to, repeats),
-            Dwhite(from / 1.5, to * 3, repeats)
+            Dwhite(from, dest, repeats),
+            Dwhite(from / 1.5, dest * 3, repeats)
         ], inf) * sd
     ).clip(SinOsc.ar(sinMod)) * mf;
     sig = sig * globalEnv;
@@ -179,12 +191,13 @@ SynthDef(\Sd_stochadiet4, {|out = 0, amp = 1, pan = 0, begin = 0, end = 1, speed
 }).add;
 
 SynthDef(\Sd_stochadiet5, {|out = 0, amp = 0.4, pan = 0, begin = 0, end = 1, speed = 1, sustain = 1, filtSpeed = 10, filtCenter = 200, sdm = 1, modFreq = 0.01, filtBw = 3, doneAction = 2|
-    var sig, size = 3, from = 1, to = 25, a = 9, b = 5, min = 0.1, max = 0.3;
-    var sd = SampleDur.ir * sdm;
+    var sig, sd, size = 3, a = 9, b = 5, min = 0.1, max = 0.3;
     var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
     var env = Env.asr;
     var globalEnv = IEnvGen.ar(env, line);
+	sdm = sdm.max(0.1);
+	sd = SampleDur.ir * sdm;
 
     sig = DemandEnvGen.ar(
         Dseq([min, min.neg, [max.neg, max]], inf),
@@ -547,9 +560,57 @@ SynthDef(\Sd_cymnew, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spee
 
 	freq = max(0, freq * speed * (1 + (accelerate * line)));
 
-	freqs = geom(99,40,pi/3) * 10.234567 * freq;
+	freqs = geom(63,40,pi/3) * 10.234567 * freq;
 	sig = WhiteNoise.ar(0.2);
 	sig = Ringz.ar(sig,freqs,1).mean;
+
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_kickmed, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 1, level = 0.5, noise = 1, dc = 1, env0L1 = 1, env0L2 = 1, env0L3 = 1, env0L4 = 1, atkEnv0 = 0.01, decEnv0 = 0.2, relEnv0 = 0.26, fratio = 1.5, env1L1 = 120, env1L2 = 30, env1L3 = 30, env1T1 = 0.0001, env1T2 = 0.2, curve1 = (-4), curve2 = (-2), curve3 = (-4), phase = 0, oamp = 0.1, owhich2 = 0, ochoose = 0, doneAction = 2;
+    var son, env0, env1, env1m, son2, son3, son4;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+
+	env0 = Env([env0L1, env0L2, env0L3, env0L4, 0],[atkEnv0, decEnv0, relEnv0, 0.05], [curve1, curve2, curve3]);
+	env1 = Env([env1L1, env1L2, env1L3], [env1T1, env1T2], curve1);
+	env0 = EnvGen.ar(env0);
+	env1 = EnvGen.ar(env1);
+	env1m = freq.max(0.01).min(2) * env1;
+	son = LFSaw.ar(env1m, 0, oamp, 1, 1.4);
+	son2 = SinOsc.ar(env1m, 0, oamp, 1, 1.4);
+	son3 = LFPulse.ar(env1m, 0, oamp, 1, 1.4);
+	son4 = LFTri.ar(env1m, 0, oamp, 1, 1.4);
+	son = SelectX.ar(ochoose.mod(4), [son, son2, son3, son4]);
+	son = LeakDC.ar(son,dc.min(1),30);
+	son = son + WhiteNoise.ar(noise);
+	son = LPF.ar(son, env1m * fratio.max(0.01), env0);
+	son = son + SelectX.ar(owhich2.mod(4),[ SinOsc.ar(env1m, phase, env0), LFSaw.ar(env1m, phase, env0), LFPulse.ar(env1m, phase, env0), LFTri.ar(env1m, phase, env0)]);
+	son = son * level.distort;
+
+	OffsetOut.ar(out, DirtPan.ar(son * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_kickMist, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 1, noise = 1, env1L1 = 120, env1L2 = 43, env1L3 = 29, env1T1 = 0.03, env1T2 = 0.29, curve1_1 = (-4), curve1_2 = (-5), doneAction = 2;
+    var sig, env1m;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+	freq = freq.max(0.01).min(2);
+
+	env1m = EnvGen.ar(Env.new([env1L1, env1L2, env1L3], [env1T1, env1T2], [curve1_1, curve1_2]));
+	sig = LFPulse.ar(env1m*freq, 0, 0.5, 1, -0.5);
+	sig = sig + WhiteNoise.ar(noise);
+	sig = LPF.ar(sig, env1m*1.5, globalEnv);
+	sig = sig + SinOsc.ar(env1m*freq, 0.5, globalEnv);
+	sig = sig.clip2(1);
 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
