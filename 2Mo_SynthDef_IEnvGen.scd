@@ -580,7 +580,7 @@ SynthDef(\Sd_kickmed, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 	env1 = Env([env1L1, env1L2, env1L3], [env1T1, env1T2], curve1);
 	env0 = EnvGen.ar(env0);
 	env1 = EnvGen.ar(env1);
-	env1m = freq.max(0.01).min(2) * env1;
+	env1m = freq * env1.max(0.01).min(2);
 	son = LFSaw.ar(env1m, 0, oamp, 1, 1.4);
 	son2 = SinOsc.ar(env1m, 0, oamp, 1, 1.4);
 	son3 = LFPulse.ar(env1m, 0, oamp, 1, 1.4);
@@ -646,65 +646,6 @@ SynthDef(\Sd_main, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\sosKick_Sd, { arg out = 0, amp = 1, pan = 0, attack = 0.001, release = 1.4, sustain = 1, curve = (-4), envPow = 1, subamp = 1, drumAmp = 1, beaterAmp = 0.02, clickAmp = 1,
-	// sub controls
-	startsubfreq = 60, endsubfreq = 32, linesubdur = 0.08, subdecay = 0.2, sublowpass = 500,
-	// drum controls
-	drumFreq = 50, drumHarmonic = 2, drumSweep = 0.02, drumAtt = 0.005, drumRel = 0.4, crv = (-4),
-	drumFilter = 1000, modIndex = 6.5, modFreq = 5,
-	// beater controls
-	beaterFreq = 500, beaterHarmonic = 12, beaterSweep = 0.03, noiseMod = 500, beaterL1 = 0, beaterL2 = 1, beaterL3 = 2.4, beaterL4 = 0, beaterT1 = 0.01, beaterT2 = 0.3, beaterT3 = 0.08,
-	// click controls
-	clkffreq = 500, clkres = 0,
-	doneAction = 2;
-
-	var gate, subfreq, sub, drumEnv, drumContour, drum, beaterContour, beaterEnv, beater, snd, click, envClick, globalEnv;
-
-	gate = Impulse.kr(0);
-
-	globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
-
-	subfreq = XLine.kr(startsubfreq, endsubfreq, linesubdur, 1, 0);
-
-	sub = LPF.ar(Ringz.ar(Impulse.ar(0), subfreq, subdecay), sublowpass) * subamp;
-
-	drumEnv = Env.perc(attackTime: drumAtt, releaseTime: drumRel, curve: crv).kr;
-
-	sub = sub * drumEnv;
-
-	drumContour = Line.kr(start: drumFreq * drumHarmonic, end: drumFreq, dur: drumSweep);
-
-	drum = PMOsc.ar(
-		carfreq: drumContour,
-		modfreq: modFreq,
-		pmindex: modIndex,
-		mul: drumAmp
-	);
-
-	drum = LPF.ar(in: drum, freq: Lag2.kr(drumFilter), mul: drumEnv);
-
-	beaterEnv = Env([beaterL1, beaterL2, beaterL3, beaterL4], [beaterT1, beaterT2, beaterT3]).kr;
-
-	beaterContour = Line.kr(start: (beaterFreq * beaterHarmonic).min(20000), end: beaterFreq, dur: beaterSweep);
-
-	beater = HPF.ar(in: WhiteNoise.ar(LFNoise0.kr(noiseMod)), freq: beaterFreq);
-
-	beater = LPF.ar(in: beater, freq: beaterContour, mul: beaterEnv) * beaterAmp;
-
-	envClick = EnvGen.kr(Env.step([700, 0], [0.0007, 0.1]), gate, 0.002);
-	click = Hasher.ar(Sweep.ar(gate, 0.000001)) * envClick;
-	click = MoogLadder.ar(click, clkffreq, clkres) * EnvGen.kr(Env.perc(0.0001, 0.00001), gate, clickAmp);
-
-	snd = Mix.ar(sub + drum + beater + click) * amp;
-
-	snd = snd * globalEnv;
-
-    //DetectSilence.ar(in: snd, doneAction: doneAction);
-
-    // OffsetOut.ar(out, Pan2.ar(snd, pan));
-	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
-}).add;
-
 SynthDef(\Sd_sosKick, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, subamp = 1, drumAmp = 1, beaterAmp = 0.02, clickAmp = 1,
 	// sub controls
 	startsubfreq = 60, endsubfreq = 32, linesubdur = 0.08, subdecay = 0.2, sublowpass = 500,
@@ -737,7 +678,7 @@ SynthDef(\Sd_sosKick, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 	drumContour = Line.kr(start: drumFreq * drumHarmonic, end: drumFreq, dur: drumSweep);
 
 	drum = PMOsc.ar(
-		carfreq: drumContour.range(0.01, 1) * freq,
+		carfreq: drumContour.explin(20, 20000, 0.01, 1) * freq,
 		modfreq: modFreq,
 		pmindex: modIndex,
 		mul: drumAmp
@@ -747,6 +688,8 @@ SynthDef(\Sd_sosKick, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 
 	beaterEnv = Env([beaterL1, beaterL2, beaterL3, beaterL4], [beaterT1, beaterT2, beaterT3]).kr;
 
+	beaterFreq = beaterFreq.explin(20, 20000, 0.01, 1) * freq;
+
 	beaterContour = Line.kr(start: (beaterFreq * beaterHarmonic).min(20000), end: beaterFreq, dur: beaterSweep);
 
 	beater = HPF.ar(in: WhiteNoise.ar(LFNoise0.kr(noiseMod)), freq: beaterFreq);
@@ -755,7 +698,7 @@ SynthDef(\Sd_sosKick, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 
 	envClick = EnvGen.kr(Env.step([700, 0], [0.0007, 0.1]), gate, 0.002);
 	click = Hasher.ar(Sweep.ar(gate, 0.000001)) * envClick;
-	click = MoogLadder.ar(click, clkffreq, clkres) * EnvGen.kr(Env.perc(0.0001, 0.00001), gate, clickAmp);
+	click = MoogLadder.ar(click, clkffreq.explin(20, 20000, 0.01, 1) * freq, clkres) * EnvGen.kr(Env.perc(0.0001, 0.00001), gate, clickAmp);
 
 	snd = Mix.ar(sub + drum + beater + click);
 
