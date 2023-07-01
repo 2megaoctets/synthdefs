@@ -753,7 +753,7 @@ SynthDef(\Sd_kickRingz, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, s
 
 	envClick = EnvGen.ar(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4].normalizeSum, clickCurve), timeScale: sustain, levelScale: clickInScale).pow(clickEnvPow);
 	click = RHPF.ar(envClick, clickHpf, clickHpRq);
-	click = RLPF.ar(click, clickLpf, clickLpRq);
+	click = RLPF.ar(click, clickLpf, clickLpRq.min(1.6));
 	click = click * clickAmp;
 
 	// env = EnvGen.kr(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4].normalizeSum, [curve, curve/2, curve]), timeScale: sustain);
@@ -846,6 +846,50 @@ SynthDef(\Sd_fabHi1Sus, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, s
 	sin2 = SinOsc.ar(sinFrq2 * freq, sinPh2, sinLev2);
 	sig = XFade2.ar(noise, Mix.ar([sin1, sin2]) * envSin, mix);
 	sig = HPF.ar(sig * globalEnv, ffreq);
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_clapthan, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 1024, envL1 = 0, envL2 = 1, envL3 = 0.5, envL4 = 1, envT1 = 0.001, envT2 = 0.01, envT3 = 0.001, crv = 0, hpfRq = 0.3, doneAction = 2;
+    var sig, inEnv;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+	inEnv = EnvGen.ar(Env([envL1, envL2, envL3, envL4], [envT1, envT2, envT3], crv));
+	sig = RHPF.ar(Hasher.ar(Sweep.ar(rate: freq.explin(20, 20000, 0.01, 1))), freq, hpfRq);
+    sig = sig * inEnv;
+
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_lcm2Sus, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 140, envNoiseFrq1 = 0.3, envNoiseFrq2 = 0.33, envNoiseVol = 0.3, envInv = 0, mod1 = 3.09431, mod2 = 54.0487, doneAction = 2;
+    var sig, sig1, sig2;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+	freq = freq.max(0.01).min(2);
+
+	globalEnv = globalEnv + LFNoise0.kr([envNoiseFrq1, envNoiseFrq1] , envNoiseVol);
+
+	globalEnv = Select.kr(envInv, [globalEnv, globalEnv.neg]);
+
+    mod1 = mod1.min(1000).max(1);
+    mod2 = mod2.min(1000).max(1);
+
+    sig1 = Saw.ar(freq * mod1).range(-100,100).round(1);
+    sig2 = LFCub.ar(freq * mod2).range(-100,100).round(1);
+
+    sig = tanh(lcm(sig1, sig2) * 0.001);
+
+    sig = sig * globalEnv;
+
+	sig = LeakDC.ar(sig);
 
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
