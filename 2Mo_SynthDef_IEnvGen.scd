@@ -720,7 +720,7 @@ SynthDef(\Sd_kickRingz, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, s
 
 	envClick = EnvGen.ar(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4].normalizeSum, clickCurve), timeScale: sustain, levelScale: clickInScale).pow(clickEnvPow);
 	click = RHPF.ar(envClick, clickHpf, clickHpRq);
-	click = RLPF.ar(click, clickLpf, clickLpRq);
+	click = RLPF.ar(click, clickLpf, clickLpRq.min(1.6));
 	click = click * clickAmp;
 
 	// env = EnvGen.kr(Env([envL1, envL2, envL3, envL4, envL5], [envT1, envT2, envT3, envT4].normalizeSum, [curve, curve/2, curve]), timeScale: sustain);
