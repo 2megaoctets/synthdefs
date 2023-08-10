@@ -224,4 +224,36 @@ SynthDef("mi_clouds" ++ ~dirt.numChannels, { |out, cloudspitch=0, cloudspos=0, c
 	));
 }, [\ir]).add;
 
+~dirt.addModule('greyHole', { |dirtEvent|
+	dirtEvent.sendSynth('greyHole' ++ ~dirt.numChannels,
+		[
+			ghdeltime: ~ghdeltime,
+			ghdamp: ~ghdamp,
+			ghsize: ~ghsize,
+			ghdiff: ~ghdiff,
+			ghfb: ~ghfb,
+			ghmoddepth: ~ghmoddepth,
+			ghmodfreq: ~ghmodfreq,
+			ghwet: ~ghwet,
+			out: ~out
+		]
+	)
+}, {~ghdeltime.notNil});
+
+SynthDef("greyHole" ++ ~dirt.numChannels, { |out, ghdeltime = 2, ghdamp = 0, ghsize = 1, ghdiff = 0.707, ghfb = 0.7, ghmoddepth = 0.1, ghmodfreq = 2, ghwet = 1 |
+	var dry = In.ar(out, ~dirt.numChannels);
+	var wet = Greyhole.ar(
+		dry,
+		delayTime: ghdeltime,
+		damp: ghdamp,
+		size: ghsize,
+		diff: ghdiff,
+		feedback: ghfb,
+		modDepth: ghmoddepth,
+		modFreq: ghmodfreq,
+	);
+	var sig = SelectX.ar(ghwet, [dry, wet]);
+	ReplaceOut.ar(out, sig);
+}, [\ir]).add;
+
 )

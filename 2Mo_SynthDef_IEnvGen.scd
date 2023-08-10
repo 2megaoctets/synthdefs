@@ -235,7 +235,9 @@ SynthDef(\Sd_batuhan, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
     var env = Env.asr;
     var globalEnv = IEnvGen.ar(env, line);
 
-	// freq = max(0, freq * speed * (1 + (accelerate * line)));
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+	freq = freq.max(0.01).min(2);
+
 	trig = Impulse.kr(0);
 	envSaw = Decay2.kr(
 		trig,
@@ -243,7 +245,7 @@ SynthDef(\Sd_batuhan, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 		eSawDec
 	);
 	envSin = EnvGen.kr(Env.new([eSinL1, eSinL2, eSinL3, eSinL4], [eSinT1, eSinT2, eSinT3], [eSinC1, eSinC2, eSinC3]), trig);
-	sig = ((Saw.ar(sawFreq, envSaw) ** 1.5) * sawMix) + (SinOsc.ar(sinFreq, 0, envSin) * (1 - sawMix));
+	sig = ((Saw.ar(sawFreq * freq, envSaw) ** 1.5) * sawMix) + (SinOsc.ar(sinFreq * freq, 0, envSin) * (1 - sawMix));
 	sig = (sig * (1 - bpfMix)) + (BPF.ar(sig, bpfFreq, bpfRq.max(0.01)) * bpfMix);
 	sig = BRF.ar(sig, trig * 20 + [brfFreq1, brfFreq2], brfRq.max(0.01));
 	sig = Splay.ar(sig, levelComp: false);
@@ -1047,6 +1049,24 @@ SynthDef(\Sd_vowelsynth, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, 
 	sig = pan1+pan2+pan3+pan4+pan5+pan6+pan7+pan8;
 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\Sd_sinBass, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, hpf4 = 50, curve = (-4), envLevel1 = 0, envLevel2 = 40, envLevel3 = 32, envLevel4 = 50, envLevel5 = 0, envLevel6 = 60, envTime1 = 0.5, envTime2 = 0.3, envTime3 = 0.25, envTime4 = 1, envTime5 = 0.5, doneAction = 2;
+    var sig, freqEnv;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+	freq = freq.max(0.01).min(2);
+
+	freqEnv = EnvGen.kr(Env([envLevel1, envLevel2, envLevel3, envLevel4, envLevel5, envLevel6], [envTime1, envTime2, envTime3, envTime4, envTime5], curve));
+	sig = SinOsc.ar(freqEnv * freq, mul: globalEnv);
+	//sig = HPF.ar(sig, 20);
+	sig = BHiPass4.ar(sig, hpf4, 1, globalEnv);
+
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
 /*SynthDef(\Sd_template, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, doneAction = 2;
