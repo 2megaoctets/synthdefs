@@ -301,7 +301,7 @@ SynthDef(\Sd_rim1, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
-SynthDef(\Sd_rim2, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, doneAction = 2;
+SynthDef(\Sd_rim2, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 1, doneAction = 2;
     var sig;
 	var envLength = sustain * (end - begin) / speed;
     var line = Line.ar(begin, end, envLength, doneAction: doneAction);
@@ -1069,6 +1069,28 @@ SynthDef(\Sd_sinBass, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\Sd_feedBackos, { arg out = 0, amp = 0.3, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, fbPow = 0.999, baseFreq = 0.01, freq = 1, lpfFreq = 4000, doneAction = 2;
+    var i, o;
+	var sig;
+	var envLength = sustain * (end - begin) / speed;
+    var line = Line.ar(begin, end, envLength, doneAction: doneAction);
+    var env = Env.asr;
+    var globalEnv = IEnvGen.ar(env, line);
+
+	freq = max(0, freq * speed * (1 + (accelerate * line)));
+	freq = freq.max(0.01).min(2);
+
+    i = LocalIn.ar(2);
+    i = i + ((1 + i) ** fbPow);
+	o = DelayC.ar(i, 1, (SinOsc.ar(baseFreq / (1..8)).exprange * freq));
+    o = LeakDC.ar(o);
+    o = Splay.ar(o).tanh;
+    LocalOut.ar(o);
+    sig = LPF.ar(o, lpfFreq) * 1/5;
+    sig = Pan2.ar(sig, pan, amp * globalEnv);
+    OffsetOut.ar(out, sig);
+}).add;
+
 /*SynthDef(\Sd_template, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, speed = 1, accelerate = 0, sustain = 1, freq = 440, doneAction = 2;
     var sig;
 	var envLength = sustain * (end - begin) / speed;
@@ -1077,6 +1099,7 @@ SynthDef(\Sd_sinBass, { arg out = 0, amp = 0.2, pan = 0, begin = 0, end = 1, spe
     var globalEnv = IEnvGen.ar(env, line);
 
 	freq = max(0, freq * speed * (1 + (accelerate * line)));
+// freq = freq.max(0.01).min(2);
 
 	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;*/
