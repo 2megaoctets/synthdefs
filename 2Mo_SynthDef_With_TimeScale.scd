@@ -2176,6 +2176,38 @@ SynthDef(\fbIntegratNet_Sd, { arg out = 0, amp = 0.3, pan = 0, attack = 0.001, r
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
+SynthDef(\chaosEngine_Sd, { arg out = 0, pan = 0, amp = 0.2, attack = 0.001, release = 1.2, sustain = 1, curve = (-4), envPow = 1, modPhaseFreq = 0.12345, modPhaseMul = 678, modPhaseAdd = 9, modAmpFreq = 101, modAmpMul = 0.2, modAmpAdd = 0.8, modOffsetFreq = 25, modOffsetWidth = 0.25, modOffsetMul = 0.125, modOffsetAdd = (-0.25), modFreqFreq = 50, sinFreq = 10, doneAction = 2;
+    var sig, globalEnv, modPhase, modAmp, modOffset, modFreq;
+    globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    modPhase = Saw.kr(modPhaseFreq, modPhaseMul, modPhaseAdd);
+    modAmp = SinOsc.kr(modAmpFreq, modPhase, modAmpMul, modAmpAdd);
+    modOffset = Pulse.kr([modOffsetFreq, modOffsetFreq + 0.5], modOffsetWidth, modOffsetMul, modOffsetAdd);
+    modFreq = (modFreqFreq * SinOsc.kr([modFreqFreq, modFreqFreq + 1], 0, modAmp, modOffset));
+    sig = SinOsc.ar(sinFreq + modFreq, 0, 0.5);
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\claudes_Sd, { arg out = 0, amp = 0.5, pan = 0, attack = 0.001, release = 1.2, sustain = 1, curve = (-4), envPow = 1, freq = 210, filtCutOff = 950, lpffreq = 2000, revMix = 0, dur = (1/6), doneAction = 2;
+    var num = 10;
+    var sig = num.collect{
+        var frq = freq * SinOsc.kr(LFNoise1.kr(dur).range(30, 1000), 0, LFNoise1.kr(dur).range(0.01, 8)).midiratio;
+        var sig = Select.ar(LFNoise0.kr(dur).range(0, 2).round,
+            [SinOsc.ar(frq, 0, 0.3), Saw.ar(frq, 0.3), Pulse.ar(frq, 0, 0.3)]);
+        var filtFreq = filtCutOff * LFNoise1.kr(dur).range(1.0, 5.0);
+        var filt = Select.ar(LFNoise0.kr(dur).range(0, 2).round,
+            [LPF.ar(sig, filtFreq), HPF.ar(sig, filtFreq), BPF.ar(sig, filtFreq)]
+        );
+        sig = CombL.ar(filt, 0.5, LFNoise1.kr(dur).range(0.02, 0.5), rrand(0.3, 2));
+        sig
+    };
+    var globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+    sig = Splay.ar(sig); // nb! levelComp: true, so if removed signal will be extremely loud!
+    sig = LPF.ar(sig, lpffreq);
+    sig = FreeVerb2.ar(sig[0], sig[1], revMix.range(0, 1.0), LFNoise1.kr(dur).range(0.2, 2));
+	OffsetOut.ar(out, DirtPan.ar(sig * globalEnv, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Tonal
 
 SynthDef(\fakeResSusSd, {
@@ -2794,6 +2826,56 @@ SynthDef(\vowelsynth_Sd,{ arg out = 0, amp = 1, pan = 0, attack = 0.001, release
     globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
     snd = pan1+pan2+pan3+pan4+pan5+pan6+pan7+pan8 * globalEnv;
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
+SynthDef(\sillyVoice_Sd, { arg out = 0, amp = 0.5, pan = 0,
+    attack = 0.001, release = 0.5, sustain = 1, curve = (-4), envPow = 1,
+	freq = 220,
+    vibratoSpeed = 6,
+    vibratoDepth = 4,
+    vowel = 0,
+    lag = 1,
+    doneAction = 2;
+
+    var in, vibrato, globalEnv, va, ve, vi, vo, vu, snd;
+
+    vibrato = SinOsc.kr(vibratoSpeed, mul: vibratoDepth);
+    in = Saw.ar(Lag.kr(freq, lag) + vibrato);
+    globalEnv = EnvGen.kr(Env.perc(attack, release, 1, curve), timeScale: sustain, doneAction: doneAction).pow(envPow);
+
+    va = BBandPass.ar(
+        in: in,
+        freq: [ 600, 1040, 2250, 2450, 2750 ],
+        bw: [ 0.1, 0.067307692307692, 0.048888888888889, 0.048979591836735, 0.047272727272727 ],
+        mul: [ 1, 0.44668359215096, 0.35481338923358, 0.35481338923358, 0.1 ]);
+
+    ve = BBandPass.ar(
+        in: in,
+        freq: [ 400, 1620, 2400, 2800, 3100 ] ,
+        bw: [ 0.1, 0.049382716049383, 0.041666666666667, 0.042857142857143, 0.038709677419355 ],
+        mul: [ 1, 0.25118864315096, 0.35481338923358, 0.25118864315096, 0.12589254117942 ]);
+
+    vi = BBandPass.ar(
+        in: in,
+        freq: [ 250, 1750, 2600, 3050, 3340 ] ,
+        bw: [ 0.24, 0.051428571428571, 0.038461538461538, 0.039344262295082, 0.035928143712575 ],
+        mul: [ 1, 0.031622776601684, 0.15848931924611, 0.079432823472428, 0.03981071705535 ] );
+
+    vo = BBandPass.ar(
+        in: in,
+        freq:[ 400, 750, 2400, 2600, 2900 ] ,
+        bw: [ 0.1, 0.10666666666667, 0.041666666666667, 0.046153846153846, 0.041379310344828 ],
+        mul: [ 1, 0.28183829312645, 0.089125093813375, 0.1, 0.01 ]);
+
+    vu = BBandPass.ar(
+        in: in,
+        freq: [ 350, 600, 2400, 2675, 2950 ],
+        bw: [ 0.11428571428571, 0.13333333333333, 0.041666666666667, 0.044859813084112, 0.040677966101695 ],
+        mul: [ 1, 0.1, 0.025118864315096, 0.03981071705535, 0.015848931924611 ]);
+
+    snd = SelectX.ar(Lag.kr(vowel, lag), [va, ve, vi, vo, vu]);
+    snd = Mix.new(snd);
+	OffsetOut.ar(out, DirtPan.ar(snd * globalEnv, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  Sequence
