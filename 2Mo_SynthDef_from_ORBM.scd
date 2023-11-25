@@ -897,6 +897,26 @@ SynthDef.new(\bd808HoriuchiSd, { arg out = 0, amp = 2, pan = 0, attack = 0, deca
 	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
 }).add;
 
+SynthDef(\nataskickSd, { arg out = 0, amp = 0.3, pan = 0, atk = 0.001, duration = 1, freq = 60, modfreqamt1 = 8, modfreqtime1 = 0.001, modfreqamt2 = 8, modfreqtime2 = 0.03, modfreqamt3 = 0.5, modfreqtime3 = 0.3, modfreqamt4 = 0.1, bpffreq1 = 8321, bpfrq1 = 0.3, bpffreq2 = 3321, bpfrq2 = 0.3, revtime = 1, earlyRef = 0.7, doneAction = 2;
+    var snd, velocity;
+    velocity = duration.linlin(1, 0, 1, 0);
+    snd = SinOsc.ar(
+        freq
+        * (1 + (modfreqamt1 * Env.perc(0, modfreqtime1).ar * velocity))
+        * (1 + (modfreqamt2 * Env.perc(0, modfreqtime2).ar * velocity))
+        * (1 + (modfreqamt3 * Env.perc(0, modfreqtime3).ar * velocity))
+        * ([1, -1] * modfreqamt4).midiratio
+    );
+    snd = snd * (1 + (Env.perc(0, 0.03).ar * velocity));
+    snd = snd + (BPF.ar(Hasher.ar(Sweep.ar), bpffreq1, bpfrq1) * Env.perc(0.001, 0.003).ar * 1.dbamp * velocity);
+    snd = snd.tanh;
+    snd = snd + (BPF.ar(Hasher.ar(Sweep.ar), bpffreq2, bpfrq2) * Env.perc(0.03, 0.05).ar * -10.dbamp * velocity);
+    snd = snd * velocity.sqrt;
+    snd = snd + GVerb.ar(snd.sum * -30.dbamp, 30, revtime, earlyreflevel: earlyRef);
+    snd = snd * Env.perc(atk, duration).ar(doneAction);
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
+}).add;
+
 ///////////////////////////////////////  Snare
 
 SynthDef(\sdSd, { | out = 0, amp = 1, pan = 0, att = 0, rel = 0.05, freq = 200, ffreq = 12000 |
@@ -1415,6 +1435,41 @@ SynthDef(\squareDrumSd, {
 
     // Out.ar(out, Pan2.ar(snd, pan));
 	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef.new(\sn808HoriuchiSd, { arg out = 0, amp = 2, pan = 0, tone = 340, tone2 = 189, snappy = 0.3, amp2 = 1, release = 0.2, doneAction = 2;
+    var noiseEnv, atkEnv, sig, noise, osc1, osc2, sum;
+    noiseEnv = EnvGen.kr(Env.perc(0.001, release, 1, -6.843224515159), doneAction: doneAction);
+    atkEnv = EnvGen.kr(Env.perc(0.001, 0.8, curve:-95), doneAction: 0);
+    noise = WhiteNoise.ar;
+    noise = HPF.ar(noise, 1800);
+    noise = LPF.ar(noise, 8850);
+    noise = noise * noiseEnv * snappy;
+    osc1 = SinOsc.ar(tone2, pi/2) * 0.6;
+    osc2 = SinOsc.ar(tone, pi/2) * 0.7;
+    sum = (osc1+osc2) * atkEnv * amp2;
+    sig = (noise + sum) * amp * 2.5;
+    sig = HPF.ar(sig, 340);
+	OffsetOut.ar(out, DirtPan.ar(sig, ~dirt.numChannels, pan));
+}).add;
+
+SynthDef(\natassnareSd, { arg out = 0, amp = 0.5, pan = 0, atk = 0.001, stn = 0.23, rls = 0.01, freq = 260, modfreqamt = 3, modfreqtime = 0.04, modfreqcrv = (-6), modfreqfact1 = 4.3, modfreqfact2 = 8.4, rls1 = 0.3, rls2 = 0.1, rls3 = 0.03, bpffreq1 = 2310, bpfrq1 = 0.25, bpffreq2 = 7310, bpfrq2 = 0.3, pshiftwin1 = 0.06, pshiftratio1 = 2.4, pshiftwin2 = 0.08, pshiftratio2 = 1.3, doneAction = 2;
+    var snd;
+    snd = SinOsc.ar(
+        freq
+        * (1 + (modfreqamt * Env.perc(0.001, modfreqtime, curve: modfreqcrv).ar))
+        * [1, modfreqfact1, modfreqfact2]
+    );
+    snd = snd * [0, -8, -12].dbamp;
+    snd = snd * Env.perc(0.001, [rls1, rls2, rls3]).ar;
+    snd = snd.sum;
+    snd = snd + (BPF.ar(WhiteNoise.ar, bpffreq1, bpfrq1) * Env.perc(0.03, 0.3).ar * 12.dbamp);
+    snd = snd + (BPF.ar(WhiteNoise.ar, bpffreq2, bpfrq2) * Env.perc(0.003, 0.04).ar * 8.dbamp);
+    snd = snd.tanh;
+	snd = snd + PitchShift.ar(snd, pshiftwin1, pshiftratio1.max(0).min(4));
+    snd = snd + PitchShift.ar(snd * -5.dbamp, pshiftwin2, pshiftratio2.max(0).min(4));
+    snd = snd * Env.linen(atk, stn, rls).ar(doneAction);
+	OffsetOut.ar(out, DirtPan.ar(snd, ~dirt.numChannels, pan, amp));
 }).add;
 
 ///////////////////////////////////////  HiHat
